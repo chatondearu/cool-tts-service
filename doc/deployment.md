@@ -41,7 +41,7 @@ Compose loads an optional **`.env`** (see **`.env.example`** in the repo root). 
 The image **`ENTRYPOINT`** runs **`python ensure_model.py`** (see `app/ensure_model.py`) **before** `uvicorn`. That step:
 
 - Uses the same **`MODEL_NAME`**, **`CACHE_DIR` / `HF_HOME`**, and **`HF_TOKEN`** as the app.
-- For a Hub id, calls **`huggingface_hub.snapshot_download`** and verifies **`config.json`** and weight files (e.g. **`.safetensors`**).
+- For a Hub id, calls **`huggingface_hub.snapshot_download`** and verifies model metadata (**`config.json`**, or Voxtral-style **`params.json`** + **`tekken.json`**) and weight files (e.g. **`.safetensors`**).
 - For an existing **local directory** `MODEL_NAME` (full snapshot on disk), skips the Hub.
 
 If this step fails, the process exits and the **container stops** (Compose shows a failed / restarting service). **`uvicorn` does not start**, so no “healthy” API on a half-baked cache.

@@ -47,6 +47,19 @@ def _has_weights(snapshot_root: Path) -> bool:
     return False
 
 
+def _has_model_metadata(snapshot_root: Path) -> bool:
+    """True if the folder looks like a usable HF model snapshot.
+
+    Transformers repos usually have config.json at the root. Voxtral TTS Hub layouts
+    (e.g. mistralai/Voxtral-4B-TTS-2603) ship params.json + tekken.json without config.json.
+    """
+    if (snapshot_root / "config.json").is_file():
+        return True
+    if (snapshot_root / "params.json").is_file() and (snapshot_root / "tekken.json").is_file():
+        return True
+    return False
+
+
 def main() -> int:
     _apply_cache_dir_env()
     _normalize_hf_token_env()
@@ -59,11 +72,13 @@ def main() -> int:
     # Same heuristic as vllm-omni omni_snapshot_download: existing path => no Hub fetch here.
     if os.path.isdir(model_name):
         root = Path(model_name).resolve()
-        if (root / "config.json").is_file() and _has_weights(root):
+        if _has_model_metadata(root) and _has_weights(root):
             print(f"ensure_model: using local model directory {root}, skip Hub download.")
             return 0
         print(
-            f"ensure_model: MODEL_NAME is a directory but missing config.json or weight files: {root}",
+            "ensure_model: MODEL_NAME is a directory but missing model metadata "
+            "(config.json or params.json+tekken.json) or weight files: "
+            f"{root}",
             file=sys.stderr,
         )
         return 1
@@ -92,8 +107,12 @@ def main() -> int:
         return 1
 
     root = Path(path_str)
-    if not (root / "config.json").is_file():
-        print(f"ensure_model: snapshot missing config.json under {root}", file=sys.stderr)
+    if not _has_model_metadata(root):
+        print(
+            "ensure_model: snapshot missing model metadata under "
+            f"{root} (expected config.json or params.json+tekken.json)",
+            file=sys.stderr,
+        )
         return 1
     if not _has_weights(root):
         print(f"ensure_model: no weight files found under {root}", file=sys.stderr)
