@@ -17,7 +17,7 @@ from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
 from vllm import SamplingParams
 from vllm_omni.entrypoints.omni import Omni
 
-_DEFAULT_MODEL = "mistralai/Voxtral-Mini-3B-TTS-2603"
+_DEFAULT_MODEL = "mistralai/Voxtral-4B-TTS-2603"
 
 # Voxtral offline example uses 24 kHz (see vllm-omni voxtral_tts/end2end.py)
 _TTS_SAMPLE_RATE_HZ = 24000

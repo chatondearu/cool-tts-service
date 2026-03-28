@@ -26,12 +26,15 @@ COPY app/ .
 # Create directories for voices and cache (voice .wav files come from COPY app/ and/or volume mount)
 RUN mkdir -p /app/voices/default /app/voices/custom /app/cache
 
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Expose FastAPI port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Allow long first-time Hub download before /health is expected (empty volume)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=720s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start FastAPI
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

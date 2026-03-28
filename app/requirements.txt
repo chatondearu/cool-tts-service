@@ -9,3 +9,4 @@ mistral-common
 
 python-dotenv==1.0.0
 loguru==0.7.2
+huggingface-hub>=0.26.0

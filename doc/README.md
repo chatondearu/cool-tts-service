@@ -1,6 +1,6 @@
 # cool-tts-service — documentation
 
-CPU-oriented TTS HTTP service built with **FastAPI**. The runtime loads a **Voxtral Mini 3B**-class model via `vllm_omni.OmniModel` (see `app/model.py`).
+CPU-oriented TTS HTTP service built with **FastAPI**. The runtime loads **Mistral Voxtral 4B TTS** (`mistralai/Voxtral-4B-TTS-2603` by default) via `vllm_omni` `Omni` (see `app/model.py`).
 
 ## Contents
 

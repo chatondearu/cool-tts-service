@@ -37,20 +37,21 @@ Deploy a **CPU-first**, **lightweight**, **customizable** TTS server (French voi
 ---
 
 ### **Recommendation**
-**👉 Mistral AI Voxtral TTS (Voxtral Mini 3B)** is the best fit for this use case:
-- **CPU-oriented**: Light and fast, including on Raspberry Pi.
-- **Strong audio quality**: Comparable to ElevenLabs v3.
-- **Easy custom voices**: 2–5s samples are enough.
-- **Very low latency**: Suited to real-time use (Home Assistant, OpenClaw).
+**👉 Mistral AI Voxtral TTS** — this repo defaults to **`mistralai/Voxtral-4B-TTS-2603`** (verified on Hugging Face). For edge / low RAM, try a smaller Hub id via `MODEL_NAME` if supported by vllm-omni.
 
-*Alternative*: If RAM is tight (< 4 GB), **Qwen 3 TTS (0.6B)** is an option, but quality and latency will be worse.
+- **CPU-oriented**: Voxtral targets efficient inference; **4B** needs more RAM than a hypothetical Mini TTS checkpoint.
+- **Strong audio quality**: Comparable to ElevenLabs-class TTS.
+- **Easy custom voices**: 2–5s samples are enough.
+- **Low latency**: Suited to real-time use (Home Assistant, OpenClaw).
+
+*Alternative*: If RAM is tight (< 8 GB for the default 4B), **Qwen 3 TTS (0.6B)** or another small TTS model is an option, but quality and latency will differ.
 
 ---
 
 ## 3️⃣ **Project Architecture**
 
 ### **Technical stack**
-- **Model**: `Voxtral Mini 3B` (or `Voxtral 4B` if you have headroom) — loaded via **`vllm_omni.OmniModel`** (`vllm-omni` package, Mistral’s recommended path for Voxtral), not a hand-rolled Transformers call in app code.
+- **Model**: Default **`mistralai/Voxtral-4B-TTS-2603`** — loaded via **`vllm_omni` `Omni`** (`vllm-omni` package, Mistral’s path for Voxtral TTS), not a hand-rolled Transformers call in app code. Override with **`MODEL_NAME`** if you use another compatible checkpoint.
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) plus HF/torch deps (see `app/requirements.txt`).
 - **Docker**: Image based on `python:3.11-slim` (`curl`, `ffmpeg`, `libsndfile1`); voices and cache mounted at `/app/voices` and `/app/cache`.
 - **API**: `POST /tts` (`text`, `voice`), `GET /health`, `GET /voices`.
@@ -89,7 +90,7 @@ cool-tts-service/
 
 ### **1️⃣ Prerequisites**
 - **Docker** and **Docker Compose** installed.
-- **At least 4 GB RAM** (8 GB recommended for Voxtral 4B).
+- **At least ~8 GB RAM** for the default **Voxtral 4B TTS** Docker limits; less only if you point `MODEL_NAME` at a smaller model.
 - **CPU**: ARM64 (Raspberry Pi) or x86_64.
 
 ---
@@ -109,7 +110,7 @@ services:
       - ./app/voices:/app/voices
       - ./app/cache:/app/cache
     environment:
-      - MODEL_NAME=mistralai/Voxtral-Mini-3B-TTS-2603  # or Voxtral-4B-TTS-2603
+      - MODEL_NAME=mistralai/Voxtral-4B-TTS-2603
       - VOICES_DIR=/app/voices
       - CACHE_DIR=/app/cache
       - LOG_LEVEL=info
@@ -118,7 +119,7 @@ services:
       resources:
         limits:
           cpus: '2'
-          memory: 4G  # 8G for Voxtral 4B
+          memory: 8G  # Voxtral 4B TTS default
 ```
 
 ---
@@ -237,8 +238,7 @@ curl -X POST "http://localhost:8000/tts" \
 
 ## 7️⃣ **Resources**
 - [Voxtral TTS documentation](https://docs.mistral.ai/capabilities/audio/text_to_speech)
-- [Hugging Face — Voxtral Mini 3B](https://huggingface.co/mistralai/Voxtral-Mini-3B-TTS-2603)
-- [Hugging Face — Voxtral 4B](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)
+- [Hugging Face — Voxtral 4B TTS (default)](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)
 - [FastAPI documentation](https://fastapi.tiangolo.com/)
 - [Docker Compose documentation](https://docs.docker.com/compose/)
 

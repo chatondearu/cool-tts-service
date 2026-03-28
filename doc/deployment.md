@@ -3,7 +3,7 @@
 ## Requirements
 
 - **Docker** and **Docker Compose** for the supported path below.
-- Compose file sets a **4G** memory limit and **2** CPUs max for `cool-tts-service` (see `docker-compose.yml`). Adjust if your model or host differs.
+- Compose file sets an **8G** memory limit and **2** CPUs max for `cool-tts-service` (see `docker-compose.yml`), aligned with the default **Voxtral 4B TTS** model. Adjust if your model or host differs.
 
 ## Docker Compose (recommended)
 
@@ -30,12 +30,31 @@ docker-compose up -d --build
 | `./app/voices` | `/app/voices` | Voice samples |
 | `./app/cache` | `/app/cache` | Model / cache data |
 
+### Hugging Face token
+
+The default model is **`mistralai/Voxtral-4B-TTS-2603`** (Voxtral 4B TTS 26.03). Accept the license on the model page if required, then create a **read** token when the Hub asks for it.
+
+Compose loads an optional **`.env`** (see **`.env.example`** in the repo root). Put `HF_TOKEN=hf_...` there so the token is not committed. The app maps **`CACHE_DIR=/app/cache`** to **`HF_HOME`**, so after the first successful download the model stays on the **`./app/cache`** volume and remains **local to the deployment** (no Mistral cloud API for inference).
+
+### Model download before the server starts
+
+The image **`ENTRYPOINT`** runs **`python ensure_model.py`** (see `app/ensure_model.py`) **before** `uvicorn`. That step:
+
+- Uses the same **`MODEL_NAME`**, **`CACHE_DIR` / `HF_HOME`**, and **`HF_TOKEN`** as the app.
+- For a Hub id, calls **`huggingface_hub.snapshot_download`** and verifies **`config.json`** and weight files (e.g. **`.safetensors`**).
+- For an existing **local directory** `MODEL_NAME` (full snapshot on disk), skips the Hub.
+
+If this step fails, the process exits and the **container stops** (Compose shows a failed / restarting service). **`uvicorn` does not start**, so no “healthy” API on a half-baked cache.
+
+Weights are **not** downloaded during `docker build` by default (keeps the image smaller and avoids baking secrets into layers). The download runs on **first container start** (and is quick on later starts when `./app/cache` already has the snapshot).
+
 ### Health check
 
-Compose and the `Dockerfile` use:
+Compose and the `Dockerfile` use a long **`start_period`** so the first Hub download can finish before the probe is treated as failing:
 
 ```yaml
 test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+start_period: 720s
 ```
 
 The image installs **`curl`** for this probe.

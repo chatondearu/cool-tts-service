@@ -2,7 +2,7 @@
 
 # TTS Server
 
-A lightweight, CPU-first TTS server using **Mistral AI's Voxtral TTS** (Mini 3B) with FastAPI and Docker.
+A lightweight, CPU-first TTS server using **Mistral AI's Voxtral TTS** (default **4B** `mistralai/Voxtral-4B-TTS-2603`) with FastAPI and Docker.
 
 **Documentation:** [doc/README.md](doc/README.md) (full technical docs in English).
 
@@ -52,7 +52,7 @@ curl -X POST "http://localhost:8000/tts" \
 ## 🔧 Configuration
 | Environment Variable | Description                     | Default                          |
 |----------------------|---------------------------------|----------------------------------|
-| `MODEL_NAME`         | TTS model                       | `mistralai/Voxtral-Mini-3B-TTS-2603` |
+| `MODEL_NAME`         | TTS model                       | `mistralai/Voxtral-4B-TTS-2603` |
 | `VOICES_DIR`         | Path to voices                  | `/app/voices`                     |
 | `CACHE_DIR`          | Hugging Face cache (`HF_HOME`)  | _(unset; use `/app/cache` in Docker)_ |
 | `LOG_LEVEL`          | Logging level                   | `INFO`                            |

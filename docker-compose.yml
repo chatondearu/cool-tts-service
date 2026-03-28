@@ -6,30 +6,32 @@ services:
     container_name: cool-tts-service
     ports:
       - "8000:8000"  # FastAPI
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./app/voices:/app/voices  # Persist voices
       - ./app/cache:/app/cache    # Cache for models
     environment:
-      - MODEL_NAME=mistralai/Voxtral-Mini-3B-TTS-2603  # Default model
+      # Default model = Voxtral 4B TTS 26.03 (override in .env if needed)
+      - MODEL_NAME=${MODEL_NAME:-mistralai/Voxtral-4B-TTS-2603}
       - VOICES_DIR=/app/voices
       - CACHE_DIR=/app/cache
       - LOG_LEVEL=info
-      # Voxtral weights on Hugging Face are gated: accept the license on the model page, create a read token,
-      # then pass it (do not set HF_TOKEN to an empty string — that triggers 401 from the Hub):
-      # - HF_TOKEN=hf_...
-      # Or use Docker secrets / env_file without blank HF_TOKEN lines.
+      # HF_TOKEN: optional; set in .env (see .env.example) for gated Hub download. Omit entirely if unused.
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: '2'          # Limit to 2 CPU cores
-          memory: 4G         # 4GB RAM for Voxtral Mini 3B
+          memory: 8G         # Voxtral 4B TTS — reduce if you switch to a smaller Hub id
         reservations:
           cpus: '1'
-          memory: 2G
+          memory: 4G
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
+      start_period: 720s
       retries: 3
