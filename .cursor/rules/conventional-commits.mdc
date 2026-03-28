@@ -1,0 +1,32 @@
+---
+description: Commit messages must follow Conventional Commits for this repository.
+alwaysApply: true
+---
+
+# Conventional Commits
+
+- **Format**: `<type>(<optional-scope>): <description>`
+  - Description in **English**, **imperative mood** (*add*, *fix*, not *added* / *fixes*).
+  - No trailing period on the subject line; keep the subject **~72 characters or less**.
+
+- **Common types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`.
+  - **`feat`**: new behavior or API surface.
+  - **`fix`**: bug fix.
+  - **`docs`**: documentation only (`doc/`, README, comments that are purely explanatory in docs).
+  - **`chore`**: tooling, config, deps without user-facing behavior change.
+  - **`build`**: Docker, Nix flake, packaging.
+
+- **Scope** (optional): area touched, e.g. `api`, `model`, `docker`, `nix`, `tts`.
+
+- **Breaking changes**: add a footer line `BREAKING CHANGE: <explanation>` or append `!` after the type/scope, e.g. `feat(api)!: remove legacy field`.
+
+**Examples**
+
+```text
+feat(model): resolve voice wav path from VOICES_DIR
+fix(docker): correct healthcheck start period
+docs(deployment): clarify Nix uv workflow
+chore: bump vllm-omni in requirements.txt
+```
+
+When proposing a commit message for this project, follow the above unless the user explicitly asks for a different convention.

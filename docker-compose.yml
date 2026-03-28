@@ -1,14 +1,9 @@
-# TTS Server - Docker Compose
-# 
-# Usage:
-#   docker-compose up -d --build
-
-version: '3.8'
+# cool-tts-service - Docker Compose
 
 services:
-  tts-server:
+  cool-tts-service:
     build: .
-    container_name: tts-server
+    container_name: cool-tts-service
     ports:
       - "8000:8000"  # FastAPI
     volumes:
@@ -19,6 +14,10 @@ services:
       - VOICES_DIR=/app/voices
       - CACHE_DIR=/app/cache
       - LOG_LEVEL=info
+      # Voxtral weights on Hugging Face are gated: accept the license on the model page, create a read token,
+      # then pass it (do not set HF_TOKEN to an empty string — that triggers 401 from the Hub):
+      # - HF_TOKEN=hf_...
+      # Or use Docker secrets / env_file without blank HF_TOKEN lines.
     restart: unless-stopped
     deploy:
       resources:
@@ -28,6 +27,7 @@ services:
         reservations:
           cpus: '1'
           memory: 2G
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

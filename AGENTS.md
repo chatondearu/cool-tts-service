@@ -2,76 +2,79 @@
 
 ---
 
-## 🎯 **Objectif du Projet**
-Déployer un serveur TTS **CPU-first**, **léger**, et **customisable** (voix françaises uniquement) dans un conteneur Docker, accessible via une API simple. Intégration avec **Home Assistant** et **OpenClaw** pour des interactions vocales.
+## 🎯 **Project Goal**
+Deploy a **CPU-first**, **lightweight**, **customizable** TTS server (French voices only) in a Docker container, exposed through a simple API. Integrate with **Home Assistant** and **OpenClaw** for voice interactions.
 
 ---
 
-## 📌 **Spécifications Techniques**
+## 📌 **Technical Specifications**
 
-### 1️⃣ **Contraintes**
-- **CPU-only** : Optimisé pour Raspberry Pi (ARM64) ou machines plus puissantes (x86_64).
-- **Voix custom** : 2-3 voix françaises préconfigurées, possibilité d’en ajouter via des échantillons audio.
-- **API REST** : Endpoint unique pour générer du TTS à partir d’un texte et d’une voix.
-- **Docker** : Image légère, facile à déployer et à mettre à jour.
-- **Multilingue** : Français uniquement (pour limiter la taille du modèle).
+### 1️⃣ **Constraints**
+- **CPU-only**: Tuned for Raspberry Pi (ARM64) or more powerful machines (x86_64).
+- **Custom voices**: 2–3 preset French voices; add more via audio samples.
+- **REST API**: Single endpoint to generate TTS from text and a voice id.
+- **Docker**: Small image, easy to deploy and update.
+- **Languages**: French only (to keep model size down).
 
 ---
 
-## 2️⃣ **Choix du Modèle TTS**
+## 2️⃣ **TTS Model Choice**
 
-### **Comparatif : Qwen 3 TTS vs Mistral AI Voxtral TTS**
+### **Comparison: Qwen 3 TTS vs Mistral AI Voxtral TTS**
 
-| Critère                | Qwen 3 TTS (1.7B)                          | Mistral AI Voxtral TTS (4B)               |
+| Criterion              | Qwen 3 TTS (1.7B)                          | Mistral AI Voxtral TTS (4B)               |
 |------------------------|--------------------------------------------|--------------------------------------------|
-| **Qualité audio**      | ⭐⭐⭐⭐ (WER ~1.2-2.8%)                     | ⭐⭐⭐⭐⭐ (Parité avec ElevenLabs v3)       |
-| **Latence (CPU)**      | ❌ Lente (RTF 3-5x)                         | ✅ Rapide (RTF 6-9.7x, TTFA ~90ms)         |
-| **Voix custom**        | ✅ Oui (3s de sample suffisent)             | ✅ Oui (2-5s de sample suffisent)          |
-| **Multilingue**        | ✅ 10 langues (dont français)              | ✅ 9 langues (dont français)               |
-| **Taille du modèle**   | ~3.4 Go (1.7B params)                      | ~8 Go (4B params) ou ~6 Go (Voxtral Mini) |
-| **Optimisation CPU**   | ❌ Non (GPU recommandé)                     | ✅ Oui (optimisé pour edge devices)        |
-| **Open Source**        | ✅ Apache 2.0                               | ✅ Open weights                            |
-| **Streaming**          | ✅ Oui (latence ~100ms)                     | ✅ Oui (latence ~90ms)                     |
-| **Clonage vocal**      | ✅ Oui (cross-lingual)                      | ✅ Oui (cross-lingual)                     |
+| **Audio quality**      | ⭐⭐⭐⭐ (WER ~1.2–2.8%)                     | ⭐⭐⭐⭐⭐ (On par with ElevenLabs v3)       |
+| **Latency (CPU)**      | ❌ Slow (RTF 3–5x)                         | ✅ Fast (RTF 6–9.7x, TTFA ~90ms)           |
+| **Custom voices**      | ✅ Yes (~3s sample enough)                 | ✅ Yes (2–5s sample enough)                |
+| **Multilingual**       | ✅ 10 languages (incl. French)             | ✅ 9 languages (incl. French)             |
+| **Model size**         | ~3.4 GB (1.7B params)                      | ~8 GB (4B) or ~6 GB (Voxtral Mini)        |
+| **CPU optimization**   | ❌ No (GPU recommended)                    | ✅ Yes (edge-oriented)                     |
+| **Open source**        | ✅ Apache 2.0                              | ✅ Open weights                            |
+| **Streaming**          | ✅ Yes (~100ms latency)                    | ✅ Yes (~90ms latency)                     |
+| **Voice cloning**      | ✅ Yes (cross-lingual)                     | ✅ Yes (cross-lingual)                     |
 
 ---
 
-### **Recommandation**
-**👉 Mistral AI Voxtral TTS (Voxtral Mini 3B)** est le meilleur choix pour ton usage :
-- **Optimisé pour le CPU** : Léger et rapide, même sur Raspberry Pi.
-- **Qualité audio supérieure** : Parité avec ElevenLabs v3.
-- **Voix custom faciles à ajouter** : 2-5s de sample suffisent.
-- **Latence ultra-faible** : Idéal pour des interactions en temps réel (Home Assistant, OpenClaw).
+### **Recommendation**
+**👉 Mistral AI Voxtral TTS (Voxtral Mini 3B)** is the best fit for this use case:
+- **CPU-oriented**: Light and fast, including on Raspberry Pi.
+- **Strong audio quality**: Comparable to ElevenLabs v3.
+- **Easy custom voices**: 2–5s samples are enough.
+- **Very low latency**: Suited to real-time use (Home Assistant, OpenClaw).
 
-*Alternative* : Si la RAM est limitée (< 4 Go), **Qwen 3 TTS (0.6B)** peut être envisagé, mais la qualité audio et la latence seront moins bonnes.
-
----
-
-## 3️⃣ **Architecture du Projet**
-
-### **Stack Technique**
-- **Modèle** : `Voxtral Mini 3B` (ou `Voxtral 4B` si ressources suffisantes) — chargé via **`vllm_omni.OmniModel`** (paquet `vllm-omni`, recommandé par Mistral pour Voxtral), pas un appel Transformers manuel dans le code applicatif.
-- **Framework** : [FastAPI](https://fastapi.tiangolo.com/) + dépendances HF/torch (voir `app/requirements.txt`).
-- **Docker** : Image basée sur `python:3.11-slim` (`curl`, `ffmpeg`, `libsndfile1`); voix et cache montés sous `/app/voices` et `/app/cache`.
-- **API** : `POST /tts` (`text`, `voice`), `GET /health`, `GET /voices`.
-- **Voix** : fichiers `*.wav` sous `{VOICES_DIR}/default/` (ids = nom sans extension); voix custom sous `app/voices/custom/` (convention).
-- **Documentation opérateur (anglais)** : [doc/README.md](doc/README.md) — source de vérité technique alignée sur le code.
+*Alternative*: If RAM is tight (< 4 GB), **Qwen 3 TTS (0.6B)** is an option, but quality and latency will be worse.
 
 ---
 
-### **Structure des Fichiers**
+## 3️⃣ **Project Architecture**
+
+### **Technical stack**
+- **Model**: `Voxtral Mini 3B` (or `Voxtral 4B` if you have headroom) — loaded via **`vllm_omni.OmniModel`** (`vllm-omni` package, Mistral’s recommended path for Voxtral), not a hand-rolled Transformers call in app code.
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) plus HF/torch deps (see `app/requirements.txt`).
+- **Docker**: Image based on `python:3.11-slim` (`curl`, `ffmpeg`, `libsndfile1`); voices and cache mounted at `/app/voices` and `/app/cache`.
+- **API**: `POST /tts` (`text`, `voice`), `GET /health`, `GET /voices`.
+- **Voices**: `*.wav` files under `{VOICES_DIR}/default/` (ids = filename without extension); custom convention under `app/voices/custom/`.
+- **Operator docs (English)**: [doc/README.md](doc/README.md) — technical source of truth aligned with the code.
+
+---
+
+### **Repository layout**
 ```
 cool-tts-service/
+├── flake.nix                   # Nix dev shell (Python 3.11 + system libs; see doc/deployment.md)
+├── flake.lock
+├── .envrc                      # Optional direnv: use flake
 ├── docker-compose.yml
 ├── Dockerfile
-├── doc/                        # Doc technique (anglais), index : doc/README.md
-├── docs/DEPLOYMENT.md          # Renvoi vers doc/deployment.md
+├── doc/                        # Technical docs (English), index: doc/README.md
+├── docs/DEPLOYMENT.md          # Points to doc/deployment.md
 ├── app/
 │   ├── main.py
 │   ├── model.py
 │   ├── voices/
-│   │   ├── default/            # *.wav → ids listés par GET /voices
-│   │   └── custom/             # Échantillons custom (convention)
+│   │   ├── default/            # *.wav → ids listed by GET /voices
+│   │   └── custom/             # Custom samples (convention)
 │   └── requirements.txt
 ├── scripts/
 │   ├── add_voice.py
@@ -82,12 +85,12 @@ cool-tts-service/
 
 ---
 
-## 4️⃣ **Étapes de Déploiement**
+## 4️⃣ **Deployment Steps**
 
-### **1️⃣ Prérequis**
-- Machine avec **Docker** et **Docker Compose** installés.
-- **4 Go de RAM minimum** (8 Go recommandés pour Voxtral 4B).
-- **CPU** : ARM64 (Raspberry Pi) ou x86_64.
+### **1️⃣ Prerequisites**
+- **Docker** and **Docker Compose** installed.
+- **At least 4 GB RAM** (8 GB recommended for Voxtral 4B).
+- **CPU**: ARM64 (Raspberry Pi) or x86_64.
 
 ---
 
@@ -97,16 +100,16 @@ cool-tts-service/
 version: '3.8'
 
 services:
-  tts-server:
+  cool-tts-service:
     build: .
-    container_name: tts-server
+    container_name: cool-tts-service
     ports:
       - "8000:8000"
     volumes:
       - ./app/voices:/app/voices
       - ./app/cache:/app/cache
     environment:
-      - MODEL_NAME=mistralai/Voxtral-Mini-3B-TTS-2603  # ou Voxtral-4B-TTS-2603
+      - MODEL_NAME=mistralai/Voxtral-Mini-3B-TTS-2603  # or Voxtral-4B-TTS-2603
       - VOICES_DIR=/app/voices
       - CACHE_DIR=/app/cache
       - LOG_LEVEL=info
@@ -115,12 +118,12 @@ services:
       resources:
         limits:
           cpus: '2'
-          memory: 4G  # 8G pour Voxtral 4B
+          memory: 4G  # 8G for Voxtral 4B
 ```
 
 ---
 
-#### **Dockerfile** (résumé)
+#### **Dockerfile** (summary)
 ```dockerfile
 FROM python:3.11-slim
 WORKDIR /app
@@ -137,7 +140,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", 
 
 ---
 
-#### **requirements.txt** (extraits)
+#### **requirements.txt** (excerpt)
 ```
 fastapi==0.110.0
 uvicorn==0.29.0
@@ -152,101 +155,101 @@ huggingface-hub==0.22.0
 
 ---
 
-### **3️⃣ Déploiement**
+### **3️⃣ Deploy**
 ```bash
-# Cloner le projet (ou créer la structure manuellement)
-git clone <url_du_projet> TTS_Project
-cd TTS_Project
+# Clone the repo (or create the layout manually)
+git clone <project_url> cool-tts-service
+cd cool-tts-service
 
-# Construire et lancer le conteneur
+# Build and start the container
 docker-compose up -d --build
 ```
 
 ---
 
-### **4️⃣ Ajouter une Voix Custom**
+### **4️⃣ Add a custom voice**
 ```bash
-# Placer un échantillon audio (2-5s) dans app/voices/custom/
-python scripts/add_voice.py --name "ma_voix" --sample app/voices/custom/sample.wav
+# Put a 2–5s audio sample somewhere, then:
+python scripts/add_voice.py --name "my_voice" --sample app/voices/custom/sample.wav
 ```
 
 ---
 
-### **5️⃣ Tester l'API**
+### **5️⃣ Test the API**
 ```bash
 curl -X POST "http://localhost:8000/tts" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Bonjour, ceci est un test de synthèse vocale.", "voice": "fr_female_1"}' \
+  -d '{"text": "Bonjour, ceci est un test de synthèse vocale.", "voice": "generate_0_FR"}' \
   --output output.wav
 ```
 
 ---
 
-## 5️⃣ **Intégration avec Home Assistant & OpenClaw**
+## 5️⃣ **Home Assistant & OpenClaw integration**
 
 ### **1️⃣ Home Assistant**
-- Utiliser l’intégration **RESTful Command** pour appeler l’API TTS.
-- Exemple de configuration :
+- Use the **RESTful Command** integration to call the TTS API.
+- Example configuration:
   ```yaml
   rest_command:
     tts_speak:
-      url: "http://<IP_DU_SERVEUR>:8000/tts"
+      url: "http://<SERVER_IP>:8000/tts"
       method: POST
       payload: '{"text": "{{ text }}", "voice": "{{ voice }}"}'
       content_type: "application/json"
   ```
-- Utiliser un **script** ou une **automation** pour déclencher le TTS.
+- Trigger TTS from a **script** or **automation**.
 
 ---
 
 ### **2️⃣ OpenClaw**
-- Utiliser le tool `tts` pour envoyer des requêtes au serveur TTS.
-- Exemple :
+- Use the `tts` tool to send requests to the TTS server.
+- Example:
   ```python
-  tts(text="Bonjour Chaton !", channel="telegram")
+  tts(text="Hello from OpenClaw!", channel="telegram")
   ```
-- Configurer l’URL du serveur TTS dans `openclaw.json` :
+- Set the TTS server URL in `openclaw.json`:
   ```json
   {
     "tts": {
-      "serverUrl": "http://<IP_DU_SERVEUR>:8000/tts"
+      "serverUrl": "http://<SERVER_IP>:8000/tts"
     }
   }
   ```
 
 ---
 
-## 6️⃣ **Maintenance & Évolutions**
+## 6️⃣ **Maintenance & roadmap**
 
-### **1️⃣ Mises à Jour**
-- **Modèle** : Surveiller les nouvelles versions de Voxtral TTS sur [Hugging Face](https://huggingface.co/mistralai).
-- **Docker** : Reconstruire l’image avec `docker-compose up -d --build`.
-
----
-
-### **2️⃣ Évolutions Possibles**
-- **Ajouter un cache** : Stocker les générations TTS fréquentes pour réduire la latence.
-- **Support du streaming** : Pour des interactions encore plus fluides.
-- **Interface web** : Pour gérer les voix custom et tester le TTS.
-- **Intégration avec Whisper** : Pour un système complet STT + TTS.
+### **1️⃣ Updates**
+- **Model**: Watch for new Voxtral TTS releases on [Hugging Face](https://huggingface.co/mistralai).
+- **Docker**: Rebuild with `docker-compose up -d --build`.
 
 ---
 
-## 7️⃣ **Ressources**
-- [Documentation Voxtral TTS](https://docs.mistral.ai/capabilities/audio/text_to_speech)
-- [Hugging Face - Voxtral Mini 3B](https://huggingface.co/mistralai/Voxtral-Mini-3B-TTS-2603)
-- [Hugging Face - Voxtral 4B](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
+### **2️⃣ Possible enhancements**
+- **Response cache**: Store frequent TTS outputs to cut latency.
+- **Streaming**: Smoother interactive playback.
+- **Web UI**: Manage custom voices and try TTS in the browser.
+- **Whisper integration**: Full STT + TTS loop.
 
 ---
 
-## 8️⃣ **État du dépôt (TODO)**
-- [x] Structure du projet et Docker.
-- [x] API (`main.py`) et chargeur modèle (`model.py`, `OmniModel`).
-- [x] Variables d’environnement : `MODEL_NAME`, `CACHE_DIR` → `HF_HOME`, `LOG_LEVEL`, `VOICES_DIR`.
-- [x] Scripts `scripts/add_voice.py` et `scripts/test_tts.py`.
-- [x] Documentation technique sous `doc/` (+ intégration HA / OpenClaw décrite ici et dans le README).
-- [ ] Valider ARM64 / Raspberry Pi (wheels `torch` / `vllm-omni` selon matériel).
-- [ ] Secondes voix françaises par défaut (`app/voices/default/*.wav`) si besoin produit.
-- [ ] Mesures de perf (latence, RAM) et optimisations ciblées.
+## 7️⃣ **Resources**
+- [Voxtral TTS documentation](https://docs.mistral.ai/capabilities/audio/text_to_speech)
+- [Hugging Face — Voxtral Mini 3B](https://huggingface.co/mistralai/Voxtral-Mini-3B-TTS-2603)
+- [Hugging Face — Voxtral 4B](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)
+- [FastAPI documentation](https://fastapi.tiangolo.com/)
+- [Docker Compose documentation](https://docs.docker.com/compose/)
+
+---
+
+## 8️⃣ **Repository status (TODO)**
+- [x] Project layout and Docker.
+- [x] API (`main.py`) and model loader (`model.py`, `OmniModel`).
+- [x] Environment variables: `MODEL_NAME`, `CACHE_DIR` → `HF_HOME`, `LOG_LEVEL`, `VOICES_DIR`.
+- [x] Scripts `scripts/add_voice.py` and `scripts/test_tts.py`.
+- [x] Technical docs under `doc/` (+ HA / OpenClaw integration here and in the README).
+- [ ] Validate ARM64 / Raspberry Pi (`torch` / `vllm-omni` wheels per hardware).
+- [ ] Additional default French voices (`app/voices/default/*.wav`) if product needs them.
+- [ ] Performance benchmarks (latency, RAM) and targeted optimizations.

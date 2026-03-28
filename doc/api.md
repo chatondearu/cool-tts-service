@@ -27,7 +27,7 @@ Lists **default** voice IDs derived from `{VOICES_DIR}/default/*.wav` (stem of t
 **Response** `200` — `application/json`:
 
 ```json
-{"voices": ["fr_female_1"]}
+{"voices": ["generate_0_FR"]}
 ```
 
 **Errors:**
@@ -51,7 +51,7 @@ Generates speech and returns a **WAV** file by default.
 | Field | Type | Required | Default | Notes |
 |-------|------|----------|---------|--------|
 | `text` | string | yes | — | Input text |
-| `voice` | string | no | `fr_female_1` | Voice id (must match available samples / model expectations) |
+| `voice` | string | no | `generate_0_FR` | Voice id (must match available samples / model expectations) |
 | `response_format` | string | no | `wav` | Passed through to the model wrapper |
 
 **Response** `200` — `audio/wav`:
@@ -68,7 +68,7 @@ Generates speech and returns a **WAV** file by default.
 ```bash
 curl -s -X POST "http://localhost:8000/tts" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Bonjour, ceci est un test.", "voice": "fr_female_1"}' \
+  -d '{"text": "Bonjour, ceci est un test.", "voice": "generate_0_FR"}' \
   --output output.wav
 ```
 

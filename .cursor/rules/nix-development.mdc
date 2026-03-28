@@ -1,0 +1,15 @@
+---
+description: Local development uses the Nix flake dev shell; Python deps via uv into .venv — not global pip on the host.
+alwaysApply: true
+---
+
+# Nix development environment
+
+- **Preferred local setup**: enter the dev shell from the repo root with `nix develop` (or **direnv** + `.envrc` with `use flake` after `direnv allow`).
+- **Python / PyPI**: do **not** instruct installing project dependencies with system-wide `pip` on the host. Use a **project `.venv`** and **`uv`** (provided by the flake):
+  - `uv venv --python python3 .venv` then `source .venv/bin/activate`
+  - `uv pip install -r app/requirements.txt`
+- **Alignment**: Python **3.11** and system libs (**ffmpeg**, **libsndfile**, **curl**, etc.) match the **Dockerfile** baseline; keep it that way when editing `flake.nix`.
+- **Lockfile**: if the flake inputs or `flake.nix` change in a meaningful way, run `nix flake lock` (or update the lock as appropriate) and **commit `flake.lock`** with the flake.
+- **Production / parity**: **Docker** remains the supported deployment path; Nix is for **isolated dev** on the workstation. Document Nix workflow changes in **`doc/deployment.md`** (English), not only in the root README.
+- **Troubleshooting**: if `python311Packages.pip` or similar is considered for the flake, remember this project uses **`uv`** in the shell to avoid Nixpkgs/Python 3.11 evaluation issues — prefer adjusting docs or `flake.nix` accordingly rather than reintroducing `pip` from Nixpkgs.

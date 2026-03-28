@@ -18,6 +18,10 @@ app/cache/
 tts_server.log
 output.wav
 
+# Nix
+result
+result-*
+
 # OS / editor
 .DS_Store
 .idea/

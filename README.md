@@ -1,3 +1,5 @@
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+
 # TTS Server
 
 A lightweight, CPU-first TTS server using **Mistral AI's Voxtral TTS** (Mini 3B) with FastAPI and Docker.
@@ -28,7 +30,7 @@ docker-compose up -d --build
 ```bash
 curl -X POST "http://localhost:8000/tts" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Bonjour, ceci est un test.", "voice": "fr_female_1"}' \
+  -d '{"text": "Bonjour, ceci est un test.", "voice": "generate_0_FR"}' \
   --output output.wav
 ```
 
@@ -36,7 +38,7 @@ curl -X POST "http://localhost:8000/tts" \
 
 ## 🎤 Voices
 ### Default Voices
-- `fr_female_1` (French female)
+- `generate_0_FR` (French female)
 - *Add more in `app/voices/default/`.*
 
 ### Add a Custom Voice
@@ -60,7 +62,7 @@ curl -X POST "http://localhost:8000/tts" \
 ## 📡 API Endpoints
 | Endpoint       | Method | Description                     | Example Payload                          |
 |---------------|--------|---------------------------------|------------------------------------------|
-| `/tts`        | POST   | Generate speech                 | `{"text": "Hello", "voice": "fr_female_1"}` |
+| `/tts`        | POST   | Generate speech                 | `{"text": "Hello", "voice": "generate_0_FR"}` |
 | `/health`     | GET    | Health check                    | -                                        |
 | `/voices`     | GET    | List available voices           | -                                        |
 
@@ -85,7 +87,17 @@ docker-compose logs -f
 ---
 
 ## 🛠 Development
-### Install Dependencies
+### With Nix (isolated shell)
+
+```bash
+nix develop
+uv venv --python python3 .venv && source .venv/bin/activate
+uv pip install -r app/requirements.txt
+```
+
+Details and caveats (PyPI wheels, ARM): [doc/deployment.md](doc/deployment.md) (section *Nix dev shell*).
+
+### Install Dependencies (without Nix)
 ```bash
 pip install -r app/requirements.txt
 ```

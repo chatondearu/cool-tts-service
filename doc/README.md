@@ -16,6 +16,7 @@ CPU-oriented TTS HTTP service built with **FastAPI**. The runtime loads a **Voxt
 | API app | `app/main.py` |
 | Model wrapper | `app/model.py` |
 | Container | `Dockerfile`, `docker-compose.yml` |
+| Local dev (Nix) | `flake.nix`, `flake.lock`, optional `.envrc` (direnv) — see [Deployment](deployment.md) |
 | Packaged voices | `app/voices/` (mounted as `/app/voices` in Docker) |
 | Helper scripts | `scripts/add_voice.py`, `scripts/test_tts.py` |
 

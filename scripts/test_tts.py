@@ -32,7 +32,7 @@ def main() -> int:
     parser.add_argument(
         "--voice",
         default=None,
-        help="Voice id (default: first from GET /voices, or fr_female_1)",
+        help="Voice id (default: first from GET /voices, or generate_0_FR)",
     )
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
@@ -52,7 +52,7 @@ def main() -> int:
             voices = json.loads(r.read().decode()).get("voices", [])
         print("/voices:", voices)
 
-        voice = args.voice or (voices[0] if voices else "fr_female_1")
+        voice = args.voice or (voices[0] if voices else "generate_0_FR")
         payload = json.dumps({"text": args.text, "voice": voice}).encode("utf-8")
         req = urllib.request.Request(
             f"{base}/tts",

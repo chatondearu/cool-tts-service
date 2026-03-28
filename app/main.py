@@ -35,7 +35,7 @@ logger.add("tts_server.log", rotation="10 MB", level=_log_name)
 # Load model (lazy loading)
 model = TTSModel()
 VOICES_DIR = os.getenv("VOICES_DIR", "/app/voices")
-DEFAULT_VOICE = "fr_female_1"
+DEFAULT_VOICE = "generate_0_FR"
 
 
 class TTSRequest(BaseModel):
