@@ -1,0 +1,18 @@
+# TTS Server - Python Dependencies
+
+# Core
+fastapi==0.110.0
+uvicorn==0.29.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+loguru==0.7.2
+
+# TTS Model
+vllm-omni==0.1.0  # Mistral-recommended for Voxtral
+transformers==4.40.0
+torch==2.2.0
+soundfile==0.12.1
+librosa==0.10.1
+
+# Cache
+huggingface-hub==0.22.0

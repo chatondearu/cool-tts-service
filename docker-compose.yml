@@ -1,0 +1,35 @@
+# TTS Server - Docker Compose
+# 
+# Usage:
+#   docker-compose up -d --build
+
+version: '3.8'
+
+services:
+  tts-server:
+    build: .
+    container_name: tts-server
+    ports:
+      - "8000:8000"  # FastAPI
+    volumes:
+      - ./app/voices:/app/voices  # Persist voices
+      - ./app/cache:/app/cache    # Cache for models
+    environment:
+      - MODEL_NAME=mistralai/Voxtral-Mini-3B-TTS-2603  # Default model
+      - VOICES_DIR=/app/voices
+      - CACHE_DIR=/app/cache
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'          # Limit to 2 CPU cores
+          memory: 4G         # 4GB RAM for Voxtral Mini 3B
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
