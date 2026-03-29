@@ -1,6 +1,5 @@
-# Offline voice prep: pack Kokoro .pt style tensors into an npz bundle for kokoro-onnx.
-# Install in a separate venv if you want to avoid pulling torch into the API venv.
-
+# Offline voice prep: .pt bundling (extract_voice.py) + optional WAV embedding (extract_voice_from_wav.py)
 torch>=2.2.0
+torchaudio
 numpy>=1.26.0
 soundfile>=0.12.0

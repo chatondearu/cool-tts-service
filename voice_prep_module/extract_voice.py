@@ -13,6 +13,8 @@ This script:
 - packs every ``.pt`` file found in ``--input-dir`` into a single npz archive
   (``.bin`` / ``.npz`` naming — same format ``kokoro_onnx.Kokoro`` loads with ``numpy.load``);
 - writes ``voice_prep_manifest.json`` next to the bundle.
+
+For experimental WAV→embedding (placeholder), see ``extract_voice_from_wav.py``.
 """
 
 from __future__ import annotations
