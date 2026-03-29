@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Experimental WAV → embedding placeholder for Kokoro-ONNX.
+Experimental WAV -> embedding placeholder for Kokoro-ONNX.
 
-Writes a single-voice bundle as an NPZ archive (same format as ``extract_voice.py`` /
-``merge_voice_bundles.py``): use ``KOKORO_VOICES_BIN_PATH`` or merge with the official
-pack. Embeddings are still random until a real encoder is wired in.
+WARNING: this script produces RANDOM 512-D embeddings — it does NOT extract a
+real style vector from the audio.  Replace the placeholder logic with an actual
+Kokoro/StyleTTS2 encoder when upstream tooling is available.
 
-np.savez is used with an explicit binary file handle so the output path is honored
-exactly (no extra ``.npz`` / ``.npy`` suffix from NumPy).
+Writes a single-voice bundle as an NPZ archive (same format as extract_voice.py /
+merge_voice_bundles.py): use KOKORO_VOICES_BIN_PATH or merge with the official pack.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -50,10 +51,11 @@ def extract_kokoro_embedding(
         resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=24000)
         waveform = resampler(waveform)
 
-    print("Generating vocal vector (512D embedding)...")
-
-    # Placeholder for Kokoro's StyleTTS2 encoder logic
-    # Replace with: embedding = kokoro_encoder(waveform) when fully implementing the extraction model
+    warnings.warn(
+        "Generating RANDOM 512-D embedding — this is a placeholder, not a real "
+        "voice extraction.  The resulting voice will NOT sound like the input audio.",
+        stacklevel=2,
+    )
     embedding = np.random.randn(512).astype(np.float32)
 
     key = _voice_bundle_key(voice_key) if voice_key else _voice_bundle_key(wav_path.stem)
@@ -61,29 +63,30 @@ def extract_kokoro_embedding(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("wb") as f:
         np.savez(f, **{key: embedding})
-    print(f"Success! Bundle saved at: {output_path} (voice key: {key})")
+    print(f"Bundle saved at: {output_path} (voice key: {key})")
 
 
 def main() -> None:
     mod = _module_dir()
     repo = _repo_root()
-    default_wav = mod / "raw_audios" / "my_target_voice.wav"
+    default_wav = mod / "raw_audios" / "nemo_0_FR.wav"
     default_out = repo / "production_api" / "voices" / "custom_from_wav.bin"
 
     parser = argparse.ArgumentParser(
-        description="Placeholder WAV → Kokoro-compatible .bin bundle (npz)",
+        description="[EXPERIMENTAL] WAV -> Kokoro-compatible .bin bundle (npz). "
+        "Embedding is random — replace with a real encoder.",
     )
     parser.add_argument(
         "--wav",
         type=Path,
         default=default_wav,
-        help=f"Input WAV (default: {default_wav})",
+        help=f"Input WAV (default: {default_wav.relative_to(repo)})",
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=default_out,
-        help=f"Output bundle path (default: {default_out})",
+        help=f"Output bundle path (default: {default_out.relative_to(repo)})",
     )
     parser.add_argument(
         "--voice-key",

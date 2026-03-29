@@ -1,12 +1,12 @@
 ---
-description: After substantive changes to the TTS API, model wrapper, Docker, or env usage, sync English docs under doc/ and keep README linking to doc/README.md. Follow the technical-docs-sync skill.
-globs: app/**/*.py,Dockerfile,docker-compose.yml
+description: After substantive changes to the TTS API, model wrapper, Docker, or env usage, sync English docs under doc/ and keep README up to date. Follow the technical-docs-sync skill.
+globs: production_api/**/*.py,production_api/Dockerfile,docker-compose.yml
 alwaysApply: false
 ---
 
 # Documentation sync
 
-- **Source of truth**: `app/main.py`, `app/model.py`, `Dockerfile`, and `docker-compose.yml`.
-- **Docs**: English only under [`doc/`](/doc); update the relevant pages (`api.md`, `deployment.md`, `configuration.md`, `architecture.md`) when behavior or contracts change.
-- **README**: Preserve a prominent link to [`doc/README.md`](doc/README.md); avoid duplicating long API tables only in README if `doc/api.md` is the canonical reference.
+- **Source of truth**: `production_api/main.py`, `production_api/tts_engine.py`, `production_api/Dockerfile`, and `docker-compose.yml`.
+- **Docs**: English only under [`doc/`](/doc); update [`doc/deployment.md`](doc/deployment.md) when behavior or contracts change.
+- **README**: Keep [`README.md`](README.md) aligned with the actual layout, env vars, and commands; avoid duplicating long deployment details already in `doc/deployment.md`.
 - When unsure, load the personal Agent Skill **technical-docs-sync** (`~/.cursor/skills/technical-docs-sync/SKILL.md`) for workflow and checklists.

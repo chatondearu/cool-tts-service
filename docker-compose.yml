@@ -6,13 +6,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Host paths: place kokoro-v1.0.onnx and voices-v1.0.bin under ./production_api/models
       - ./production_api/models:/app/models:ro
-      # Optional: custom_voices.bin or merged_voices.bin — set KOKORO_VOICES_BIN_PATH if not using default under models/
       - ./production_api/voices:/app/voices:ro
     environment:
-      # Default inside the app: /app/models/kokoro-v1.0.onnx and /app/models/voices-v1.0.bin
-      # Uncomment to use a merged bundle (Phase 5) placed in the voices volume:
-      # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
       PYTHONUNBUFFERED: "1"
+      # Uncomment to use a merged bundle (placed in the voices volume):
+      # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
     restart: unless-stopped

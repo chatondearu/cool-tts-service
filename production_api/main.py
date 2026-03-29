@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import io
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import soundfile as sf
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from tts_engine import KokoroTTS
+
+logger = logging.getLogger("cool-tts")
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 
@@ -28,11 +31,15 @@ def _default_voices_bin_path() -> Path:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    model_path = Path(os.environ.get("KOKORO_MODEL_PATH", _default_model_path()))
+    model_path = Path(os.environ.get("KOKORO_MODEL_PATH", str(_default_model_path())))
     voices_bin_path = Path(
-        os.environ.get("KOKORO_VOICES_BIN_PATH", _default_voices_bin_path())
+        os.environ.get("KOKORO_VOICES_BIN_PATH", str(_default_voices_bin_path()))
     )
-    app.state.tts = KokoroTTS(model_path, voices_bin_path)
+    logger.info("Loading model from %s", model_path)
+    logger.info("Loading voices from %s", voices_bin_path)
+    tts = KokoroTTS(model_path, voices_bin_path)
+    app.state.tts = tts
+    logger.info("TTS ready — %d voices available", len(tts.list_voices()))
     yield
 
 
@@ -41,8 +48,14 @@ app = FastAPI(title="Cool TTS Service", lifespan=lifespan)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    """Liveness/readiness probe (TTS is ready once the process has started)."""
     return {"status": "ok"}
+
+
+@app.get("/voices")
+async def voices(request: Request) -> dict[str, list[str]]:
+    """List all available voice ids from the loaded bundle."""
+    tts: KokoroTTS = request.app.state.tts
+    return {"voices": tts.list_voices()}
 
 
 class GenerateRequest(BaseModel):
@@ -50,20 +63,27 @@ class GenerateRequest(BaseModel):
     language: str = Field(
         ...,
         min_length=1,
-        description="Grapheme / language code for Kokoro (e.g. fr-fr, en-us).",
+        description="Language code for Kokoro (e.g. fr-fr, en-us).",
     )
     voice_id: str = Field(
         ...,
         min_length=1,
         description="Bundled Kokoro voice id (e.g. af_sarah).",
     )
+    speed: float = Field(
+        1.0,
+        gt=0,
+        le=5.0,
+        description="Playback speed multiplier (0 < speed <= 5).",
+    )
 
 
-def _synthesize_wav_bytes(tts: KokoroTTS, text: str, voice_id: str, lang: str) -> bytes:
-    samples = tts.generate_audio(text=text, voice_id=voice_id, lang=lang)
-    sample_rate = tts.sample_rate
+def _synthesize_wav_bytes(
+    tts: KokoroTTS, text: str, voice_id: str, lang: str, speed: float
+) -> bytes:
+    samples = tts.generate_audio(text=text, voice_id=voice_id, lang=lang, speed=speed)
     buf = io.BytesIO()
-    sf.write(buf, samples, sample_rate, format="WAV", subtype="PCM_16")
+    sf.write(buf, samples, tts.sample_rate, format="WAV", subtype="PCM_16")
     buf.seek(0)
     return buf.read()
 
@@ -71,12 +91,22 @@ def _synthesize_wav_bytes(tts: KokoroTTS, text: str, voice_id: str, lang: str) -
 @app.post("/generate")
 async def generate(request: Request, body: GenerateRequest) -> StreamingResponse:
     tts: KokoroTTS = request.app.state.tts
+
+    available = tts.list_voices()
+    if body.voice_id not in available:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown voice_id '{body.voice_id}'. "
+            f"Use GET /voices for the list ({len(available)} available).",
+        )
+
     wav_bytes = await asyncio.to_thread(
         _synthesize_wav_bytes,
         tts,
         body.text,
         body.voice_id,
         body.language,
+        body.speed,
     )
     return StreamingResponse(
         iter([wav_bytes]),

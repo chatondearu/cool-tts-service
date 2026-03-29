@@ -116,8 +116,8 @@ def main() -> None:
 
     manifest: dict = {
         "version": 1,
-        "input_dir": str(input_dir.resolve()),
-        "output_dir": str(output_dir.resolve()),
+        "input_dir": str(input_dir),
+        "output_dir": str(output_dir),
         "bundle": None,
         "voice_keys": [],
         "wav_inventory": [],
@@ -134,7 +134,7 @@ def main() -> None:
         voices_dict = {k: voices_obj[k] for k in sorted(voices_obj.keys())}
         with open(bundle_path, "wb") as f:
             np.savez(f, **voices_dict)
-        manifest["bundle"] = str(bundle_path.resolve())
+        manifest["bundle"] = str(bundle_path)
         manifest["voice_keys"] = list(voices_dict.keys())
         mib = bundle_path.stat().st_size / (1024 * 1024)
         print(f"Wrote bundle {bundle_path} (~{mib:.2f} MiB), voices: {manifest['voice_keys']}")

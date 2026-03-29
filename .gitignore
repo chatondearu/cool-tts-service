@@ -14,3 +14,7 @@ build/
 production_api/models/*.onnx
 production_api/models/*.bin
 production_api/voices/*.bin
+
+# Generated metadata from merge / prep scripts
+*.merge-meta.json
+production_api/voices/voice_prep_manifest.json
