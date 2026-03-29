@@ -1,15 +1,33 @@
 ---
-description: Local development uses the Nix flake dev shell; Python deps via uv into .venv — not global pip on the host.
+description: Discover how this repo expects Nix/local dev to work from AGENTS, README, or repo layout — avoid assuming legacy paths or stacks.
 alwaysApply: true
 ---
 
-# Nix development environment
+# Nix and local development (generic)
 
-- **Preferred local setup**: enter the dev shell from the repo root with `nix develop` (or **direnv** + `.envrc` with `use flake` after `direnv allow`).
-- **Python / PyPI**: do **not** instruct installing project dependencies with system-wide `pip` on the host. Use a **project `.venv`** and **`uv`** (provided by the flake):
-  - `uv venv --python python3 .venv` then `source .venv/bin/activate`
-  - `uv pip install -r app/requirements.txt`
-- **Alignment**: Python **3.11** and system libs (**ffmpeg**, **libsndfile**, **curl**, etc.) match the **Dockerfile** baseline; keep it that way when editing `flake.nix`.
-- **Lockfile**: if the flake inputs or `flake.nix` change in a meaningful way, run `nix flake lock` (or update the lock as appropriate) and **commit `flake.lock`** with the flake.
-- **Production / parity**: **Docker** remains the supported deployment path; Nix is for **isolated dev** on the workstation. Document Nix workflow changes in **`doc/deployment.md`** (English), not only in the root README.
-- **Troubleshooting**: if `python311Packages.pip` or similar is considered for the flake, remember this project uses **`uv`** in the shell to avoid Nixpkgs/Python 3.11 evaluation issues — prefer adjusting docs or `flake.nix` accordingly rather than reintroducing `pip` from Nixpkgs.
+## Where project truth lives (in order)
+
+1. **[`AGENTS.md`](AGENTS.md)** (or `AGENTS`, `CLAUDE.md`, etc.) at the repo root when present — toolchain, commands, env vars, Nix/direnv notes.
+2. **Root [`README.md`](README.md)** — setup, `nix develop`, Docker, language versions, dependency install paths.
+3. **`doc/`** or **`docs/`** — deployment / dev docs (e.g. `doc/deployment.md`).
+
+If those do not spell out Nix or local dev, **scan the repo** and infer:
+
+- Nix: `flake.nix`, `flake.lock`, `shell.nix`, `.envrc`, `default.nix`
+- Containers: `Dockerfile`, `docker-compose*.yml`, `compose.yaml`
+- Language manifests: `pyproject.toml`, `**/requirements*.txt`, `package.json`, `go.mod`, `Cargo.toml`, `Gemfile`, etc.
+- Scripts: `Makefile`, `justfile`, task runners
+
+Do **not** assume fixed paths (e.g. `app/requirements.txt`) unless they appear in the tree or docs.
+
+## When editing `flake.nix`
+
+- Match **documented** language/runtime versions when README/AGENTS specify them; otherwise align with the primary manifest in the repo (e.g. `.python-version`, `Dockerfile` `FROM`).
+- Prefer **dev tools** (formatters, `uv`, `poetry`, `node`, etc.) that the project already uses — avoid pulling `pip` / full Python env from Nixpkgs if the project standard is isolated venv + installer documented in README/AGENTS.
+- Add **system libraries** the stack needs (e.g. audio, SSL, compression) based on imported native deps, not a generic template.
+- After meaningful input or output changes to the flake, run **`nix flake lock`** and commit **`flake.lock`** with the flake.
+
+## Advising the user or agent
+
+- Point to the exact commands and paths from **README / AGENTS / repo scan**, not boilerplate from another project.
+- **Production** vs **local**: follow README/AGENTS (often Docker for deploy, Nix for workstation); state both if the repo defines both.

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "input_dir": "/home/chaton/dev/chatondearu/cool-tts-service/voice_prep_module/raw_audios",
+  "output_dir": "/home/chaton/dev/chatondearu/cool-tts-service/production_api/voices",
+  "bundle": null,
+  "voice_keys": [],
+  "wav_inventory": [
+    {
+      "path": "nemo_0_FR.wav",
+      "samplerate": 48000,
+      "channels": 2,
+      "frames": 1394235,
+      "duration_s": 29.046563
+    }
+  ],
+  "notes": [
+    "No .pt files found. Kokoro ONNX needs style packs: download official `voices/*.pt` from hexgrad/Kokoro-82M (or compatible) into raw_audios, then re-run this script to produce a npz bundle consumable via KOKORO_VOICES_BIN_PATH."
+  ]
+}
