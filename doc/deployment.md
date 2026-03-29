@@ -54,6 +54,15 @@ On **NixOS/Linux**, PyPI wheels (`onnxruntime`, native extensions, **`soundfile`
 
 If **`nix develop`** or **`nix`** still fails with `CXXABI_1.3.15` **before** the shell starts, the **parent** process is picking a bad `libstdc++` from `LD_LIBRARY_PATH` and the flake has not run yet. Use **`direnv reload`** after updating the flake, or run **`env -u LD_LIBRARY_PATH nix develop`** once. If a wheel still fails to load, extend `makeLibraryPath` or use **`nix-ld`**.
 
-## Production
+## Production (Docker)
 
-The intended production path is **Docker** (`production_api/Dockerfile` and root `docker-compose.yml`). Those files are **not** in the tree until Phase 4 lands; use Nix plus a venv for local development today.
+Build and run from the repository root:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Host directories **`production_api/models/`** and **`production_api/voices/`** are mounted read-only into the container (`/app/models`, `/app/voices`). Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `models/`. For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `voices/`, and set **`KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
+
+The image exposes port **8000** and uses **`GET /health`** for the Docker healthcheck.

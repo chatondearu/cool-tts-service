@@ -17,8 +17,10 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`production_api/tts_engine.py`](production_api/tts_engine.py) | `KokoroTTS` — keep thin for engine swap later |
 | [`production_api/requirements_api.txt`](production_api/requirements_api.txt) | API + inference dependencies |
 | [`production_api/models/`](production_api/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
-| [`voice_prep_module/`](voice_prep_module/) | Offline prep — `extract_voice.py`, `requirements_prep.txt`, `raw_audios/` |
-| [`production_api/voices/`](production_api/voices/) | `voice_prep_manifest.json`, optional `custom_voices.bin` (npz; gitignored) |
+| [`production_api/Dockerfile`](production_api/Dockerfile) | API image; models/voices mounted at run time |
+| [`docker-compose.yml`](docker-compose.yml) | `tts` service, bind-mounts `models/` + `voices/` |
+| [`voice_prep_module/`](voice_prep_module/) | `extract_voice.py`, `merge_voice_bundles.py`, `requirements_prep.txt`, `raw_audios/` |
+| [`production_api/voices/`](production_api/voices/) | `voice_prep_manifest.json`, optional `*.bin` bundles (gitignored) |
 | [`flake.nix`](flake.nix) / [`flake.lock`](flake.lock) | Dev shell (Python 3.11, `uv`, audio libs) |
 
 ## Environment variables
@@ -50,6 +52,17 @@ python voice_prep_module/extract_voice.py
 
 Kokoro ONNX does **not** build new style vectors from raw `.wav` here; the script packs Hugging Face–style `*.pt` clips and inventories WAV metadata. Set `KOKORO_VOICES_BIN_PATH` to `production_api/voices/custom_voices.bin` when using a custom bundle.
 
+**Merge official + custom bundles** (numpy only):
+
+```bash
+python voice_prep_module/merge_voice_bundles.py \
+  --base production_api/models/voices-v1.0.bin \
+  --overlay production_api/voices/custom_voices.bin \
+  --output production_api/voices/merged_voices.bin
+```
+
+**Docker:** `docker compose build && docker compose up` from repo root; probe `GET /health`.
+
 After changing flake **inputs**, run `nix flake lock` and commit **`flake.lock`** with **`flake.nix`**.
 
 ## Commits
@@ -62,5 +75,4 @@ See [`.cursor/rules/nix-development.mdc`](.cursor/rules/nix-development.mdc): pr
 
 ## Out of scope unless requested
 
-- Do not add Docker artifacts until Phase 4 is explicitly requested (Dockerfile / compose).
-- Do not commit large `.onnx` / `.bin` assets; `.gitignore` covers `production_api/models/` and `production_api/voices/*.bin`.
+- Do not commit large `.onnx` / `.bin` assets; `.gitignore` covers `production_api/models/*.onnx`, `production_api/models/*.bin`, and `production_api/voices/*.bin`.

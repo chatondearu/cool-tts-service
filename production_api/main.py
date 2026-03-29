@@ -39,6 +39,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Cool TTS Service", lifespan=lifespan)
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness/readiness probe (TTS is ready once the process has started)."""
+    return {"status": "ok"}
+
+
 class GenerateRequest(BaseModel):
     text: str = Field(..., min_length=1)
     language: str = Field(
