@@ -5,7 +5,8 @@
 1. **Root [`README.md`](README.md)** — goals, layout, quick start, API example.
 2. **This file** — paths, env vars, and workflow expectations.
 3. **[`doc/deployment.md`](doc/deployment.md)** — Nix shell quirks, `LD_LIBRARY_PATH`, production vs local.
-4. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
+4. **[`doc/voice-preparation.md`](doc/voice-preparation.md)** — full voice prep guide (concepts, workflow, script reference, FAQ).
+5. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
 
 Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** dependency and source paths from the tree or these docs.
 
@@ -25,6 +26,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`voice_prep_module/requirements_prep.txt`](voice_prep_module/requirements_prep.txt) | Offline prep dependencies (torch, numpy, soundfile) |
 | [`voice_prep_module/raw_audios/`](voice_prep_module/raw_audios/) | Reference WAV clips (e.g. `nemo_0_FR.wav`) |
 | [`production_api/voices/`](production_api/voices/) | Generated bundles + manifests (gitignored except `.gitkeep`) |
+| [`doc/voice-preparation.md`](doc/voice-preparation.md) | Full voice prep guide (concepts, workflow, script ref, FAQ) |
 | [`flake.nix`](flake.nix) / [`flake.lock`](flake.lock) | Dev shell (Python 3.11, `uv`, audio libs) |
 
 ## Environment variables

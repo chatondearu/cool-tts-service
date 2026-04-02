@@ -27,7 +27,8 @@ cool-tts-service/
 │   ├── requirements_prep.txt
 │   └── raw_audios/            # Reference WAV clips
 ├── doc/
-│   └── deployment.md          # Nix + Docker + production notes
+│   ├── deployment.md          # Nix + Docker + production notes
+│   └── voice-preparation.md   # Full voice prep guide (concepts, workflow, FAQ)
 ├── docker-compose.yml
 ├── flake.nix / flake.lock / .envrc
 ├── AGENTS.md
@@ -91,39 +92,31 @@ JSON body fields for `/generate`: `text`, `language`, `voice_id`, `speed` (optio
 
 ## Voice preparation
 
-Kokoro's ONNX runtime consumes **precomputed style packs** (the official release uses `voices-v1.0.bin`; upstream also distributes per-voice **`*.pt`** files on Hugging Face). **Arbitrary `.wav` files alone are not converted** into real Kokoro style vectors — keep WAVs as reference recordings and add matching `.pt` sources when you have them.
+Kokoro uses **precomputed style vectors** (not raw audio) to define a voice. The official bundle (`voices-v1.0.bin`) ships ~50 voices; you can add your own by downloading `.pt` packs from [HuggingFace](https://huggingface.co/hexgrad/Kokoro-82M/tree/main/voices) and bundling them with the scripts in `voice_prep_module/`.
 
-### Pack .pt files into a custom bundle
+**Full step-by-step guide:** [`doc/voice-preparation.md`](doc/voice-preparation.md) — covers concepts, prerequisites, the complete workflow, script reference and FAQ.
+
+Quick summary:
 
 ```bash
+# 1. Install prep dependencies
 uv pip install --python .venv/bin/python -r voice_prep_module/requirements_prep.txt
+
+# 2. Download .pt voice files into voice_prep_module/raw_audios/
+
+# 3. Pack into a custom bundle
 python voice_prep_module/extract_voice.py \
   --input-dir voice_prep_module/raw_audios \
   --output-dir production_api/voices
-```
 
-- With **only `.wav`**: writes a manifest with metadata and instructions.
-- With **`.pt` files** in the input dir: writes `production_api/voices/custom_voices.bin` (npz bundle) plus the manifest.
-
-### Merge official + custom bundles
-
-Combine `voices-v1.0.bin` with `custom_voices.bin`. Overlay keys **replace** same-named keys in the base file.
-
-```bash
+# 4. Merge with the official bundle
 python voice_prep_module/merge_voice_bundles.py \
   --base production_api/models/voices-v1.0.bin \
   --overlay production_api/voices/custom_voices.bin \
   --output production_api/voices/merged_voices.bin
-```
 
-Then set `KOKORO_VOICES_BIN_PATH` to point at `merged_voices.bin`.
-
-### Experimental: WAV -> placeholder embedding
-
-> **Warning:** this script produces **random** embeddings — the output will NOT sound like the input audio. It exists as a scaffold for when a real encoder becomes available.
-
-```bash
-python voice_prep_module/extract_voice_from_wav.py --wav voice_prep_module/raw_audios/nemo_0_FR.wav
+# 5. Point the API at the merged file
+export KOKORO_VOICES_BIN_PATH=production_api/voices/merged_voices.bin
 ```
 
 ## Docker
@@ -139,6 +132,16 @@ docker compose up
 - API docs: <http://127.0.0.1:8000/docs>
 
 To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`.
+
+## Roadmap / TODO
+
+- [ ] **Kokoro style encoder** — watch upstream [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) for a real WAV → style-vector extractor. Will replace the placeholder `extract_voice_from_wav.py` (random embeddings) and enable zero-shot voice cloning while keeping CPU inference lightweight.
+- [ ] **Piper TTS as alternative engine** — if Kokoro voice cloning stays unavailable, consider swapping to [Piper](https://github.com/rhasspy/piper):
+  - ONNX models very lightweight (~15–60 MB), CPU friendly (runs on RPi).
+  - **Native Home Assistant integration** (primary use-case).
+  - Many pre-trained French voices available.
+  - Fine-tuning via VITS pipeline (requires GPU + ~30 min of audio).
+  - `tts_engine.py` is already designed for a modular engine swap.
 
 ## Contributing / agents
 
