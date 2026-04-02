@@ -107,11 +107,22 @@ docker compose up
 
 Two services start:
 
-- **`api`** (port 8000) — FastAPI TTS backend. Host directories **`api/models/`** and **`api/voices/`** are mounted read-only.
-- **`ui`** (port 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
+- **`api`** (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories **`api/models/`** and **`api/voices/`** are mounted read-only.
+- **`ui`** (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
+
+Override the host ports in `.env` if the defaults conflict with other services:
+
+```bash
+API_PORT=9000
+UI_PORT=3001
+```
 
 Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `api/models/`.
 
 For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `api/voices/`, and set **`KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
 
 To secure the FastAPI with a Bearer token, set **`API_TOKEN`** in `.env`; the UI will inject it automatically when proxying requests.
+
+### Coolify / managed reverse proxy
+
+When deploying behind **Coolify** (or any platform that routes via Traefik / Caddy on the Docker network), the `ports:` section is **not used** — the reverse proxy reaches containers on their internal ports (`EXPOSE 8000` / `EXPOSE 3000`). The `API_PORT` / `UI_PORT` variables only matter for local development; Coolify auto-detects internal ports and manages routing.

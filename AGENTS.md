@@ -46,6 +46,8 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `API_BASE_URL` | FastAPI URL for the Nuxt server (default `http://localhost:8000`) |
 | `ADMIN_USER` | UI login username (default `admin`) |
 | `ADMIN_PASSWORD` | UI login password |
+| `API_PORT` | Host port for the API container (default `8000`; ignored by Coolify) |
+| `UI_PORT` | Host port for the UI container (default `3000`; ignored by Coolify) |
 
 ## API endpoints
 

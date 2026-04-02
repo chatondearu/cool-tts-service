@@ -165,6 +165,8 @@ docker compose up
 - API health: `GET http://localhost:8000/health`
 - API docs: <http://localhost:8000/docs>
 
+Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). On **Coolify** or any Traefik-managed platform, these are ignored — the reverse proxy routes to internal container ports automatically.
+
 To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
 
 ## Roadmap / TODO
