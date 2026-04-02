@@ -48,11 +48,29 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### API endpoints
 
+#### Internal (used by the Nuxt UI)
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness/readiness probe |
 | `GET` | `/voices` | List available voice ids from the loaded bundle |
 | `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`) |
+
+#### OpenAI-compatible (Open WebUI, Home Assistant, etc.)
+
+These routes let external tools that speak the OpenAI TTS protocol use the same Kokoro engine without any adapter:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/models` | List models (`kokoro-v1.0`) |
+| `GET` | `/v1/audio/voices` | List voices as `[{"id", "name"}]` |
+| `POST` | `/v1/audio/speech` | Synthesize text → WAV (`model`, `input`, `voice`, `speed`, optional `language`) |
+
+When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
+
+**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` and optionally provide the `API_TOKEN` as API key.
+
+**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech`; leave the API key empty if `API_TOKEN` is not set.
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 

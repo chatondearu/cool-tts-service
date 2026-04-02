@@ -14,7 +14,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 | Area | Role |
 |------|------|
-| [`api/main.py`](api/main.py) | FastAPI app, lifespan, `POST /generate`, `GET /voices`, `GET /health` |
+| [`api/main.py`](api/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes (`POST /v1/audio/speech`, `GET /v1/audio/voices`, `GET /v1/models`) |
 | [`api/tts_engine.py`](api/tts_engine.py) | `KokoroTTS` — thin wrapper (24 kHz, `list_voices`, `generate_audio`) |
 | [`api/requirements_api.txt`](api/requirements_api.txt) | API + inference dependencies |
 | [`api/models/`](api/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
@@ -49,11 +49,23 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 ## API endpoints
 
+### Internal (used by the Nuxt UI)
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness/readiness probe |
 | `GET` | `/voices` | List available voice ids |
 | `POST` | `/generate` | Synthesize text → WAV (body: `text`, `language`, `voice_id`, `speed`) |
+
+### OpenAI-compatible (Open WebUI, Home Assistant `openai_tts`, etc.)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/models` | List available models (always `kokoro-v1.0`) |
+| `GET` | `/v1/audio/voices` | List voices as `[{"id": …, "name": …}]` |
+| `POST` | `/v1/audio/speech` | Synthesize text → WAV (body: `model`, `input`, `voice`, `speed`, optional `language`, `response_format`) |
+
+The `language` field on `/v1/audio/speech` is a non-standard extension: when omitted, the language is inferred from the Kokoro voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`).
 
 ## Commands (typical)
 
