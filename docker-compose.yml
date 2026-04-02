@@ -1,15 +1,39 @@
 services:
-  tts:
+  api:
     build:
-      context: ./production_api
+      context: ./api
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - ./production_api/models:/app/models:ro
-      - ./production_api/voices:/app/voices:ro
+      - ./api/models:/app/models:ro
+      - ./api/voices:/app/voices:ro
     environment:
       PYTHONUNBUFFERED: "1"
+      API_TOKEN: "${API_TOKEN:-}"
       # Uncomment to use a merged bundle (placed in the voices volume):
       # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:?Set NUXT_SESSION_PASSWORD (min 32 chars)}"
+      NUXT_API_BASE_URL: "http://api:8000"
+      NUXT_API_TOKEN: "${API_TOKEN:-}"
+      NUXT_ADMIN_USER: "${ADMIN_USER:-admin}"
+      NUXT_ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}"
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped

@@ -39,7 +39,7 @@ def main() -> None:
         "--output",
         type=Path,
         required=True,
-        help="Merged npz path (e.g. production_api/voices/merged_voices.bin)",
+        help="Merged npz path (e.g. api/voices/merged_voices.bin)",
     )
     args = parser.parse_args()
 

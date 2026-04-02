@@ -1,12 +1,12 @@
 ---
 description: After substantive changes to the TTS API, model wrapper, Docker, or env usage, sync English docs under doc/ and keep README up to date. Follow the technical-docs-sync skill.
-globs: production_api/**/*.py,production_api/Dockerfile,docker-compose.yml
+globs: api/**/*.py,api/Dockerfile,ui/nuxt.config.ts,ui/server/**/*.ts,ui/Dockerfile,docker-compose.yml
 alwaysApply: false
 ---
 
 # Documentation sync
 
-- **Source of truth**: `production_api/main.py`, `production_api/tts_engine.py`, `production_api/Dockerfile`, and `docker-compose.yml`.
+- **Source of truth**: `api/main.py`, `api/tts_engine.py`, `api/Dockerfile`, `ui/nuxt.config.ts`, `ui/Dockerfile`, and `docker-compose.yml`.
 - **Docs**: English only under [`doc/`](/doc); update [`doc/deployment.md`](doc/deployment.md) when behavior or contracts change.
 - **README**: Keep [`README.md`](README.md) aligned with the actual layout, env vars, and commands; avoid duplicating long deployment details already in `doc/deployment.md`.
 - When unsure, load the personal Agent Skill **technical-docs-sync** (`~/.cursor/skills/technical-docs-sync/SKILL.md`) for workflow and checklists.

@@ -70,7 +70,7 @@ def main() -> None:
     mod = _module_dir()
     repo = _repo_root()
     default_wav = mod / "raw_audios" / "nemo_0_FR.wav"
-    default_out = repo / "production_api" / "voices" / "custom_from_wav.bin"
+    default_out = repo / "api" / "voices" / "custom_from_wav.bin"
 
     parser = argparse.ArgumentParser(
         description="[EXPERIMENTAL] WAV -> Kokoro-compatible .bin bundle (npz). "

@@ -9,12 +9,13 @@ __pycache__/
 dist/
 build/
 .direnv
+.env
 
 # Local model artifacts (large); keep empty dirs via .gitkeep
-production_api/models/*.onnx
-production_api/models/*.bin
-production_api/voices/*.bin
+api/models/*.onnx
+api/models/*.bin
+api/voices/*.bin
 
 # Generated metadata from merge / prep scripts
 *.merge-meta.json
-production_api/voices/voice_prep_manifest.json
+api/voices/voice_prep_manifest.json

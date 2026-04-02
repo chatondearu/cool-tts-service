@@ -51,9 +51,10 @@
                 fi
                 echo "cool-tts-service dev shell (Python 3.11 in PATH — app supports 3.10+)"
                 echo "  uv venv:  uv venv --python ''${UV_PYTHON:-python3} .venv && source .venv/bin/activate"
-                echo "  deps:     uv pip install --python .venv/bin/python -r production_api/requirements_api.txt"
+                echo "  deps:     uv pip install --python .venv/bin/python -r api/requirements_api.txt"
                 echo "  optional: uv pip install -r voice_prep_module/requirements_prep.txt"
-                echo "  API:      cd production_api && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+                echo "  API:      cd api && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+                echo "  UI:       cd ui && nix shell nixpkgs#nodejs_22 --command bash -c 'npm run dev'"
               '';
           };
         }

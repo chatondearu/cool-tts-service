@@ -13,12 +13,31 @@ import soundfile as sf
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from tts_engine import KokoroTTS
 
 logger = logging.getLogger("cool-tts")
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
+_API_TOKEN = os.environ.get("API_TOKEN", "")
+
+
+class _BearerTokenMiddleware(BaseHTTPMiddleware):
+    """Reject requests without a valid Bearer token when API_TOKEN is set."""
+
+    OPEN_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
+
+    async def dispatch(self, request: Request, call_next):
+        if not _API_TOKEN or request.url.path in self.OPEN_PATHS:
+            return await call_next(request)
+
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {_API_TOKEN}":
+            from starlette.responses import JSONResponse
+
+            return JSONResponse({"detail": "Invalid or missing token"}, status_code=401)
+        return await call_next(request)
 
 
 def _default_model_path() -> Path:
@@ -44,6 +63,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Cool TTS Service", lifespan=lifespan)
+
+if _API_TOKEN:
+    app.add_middleware(_BearerTokenMiddleware)
+    logger.info("Bearer token authentication enabled")
 
 
 @app.get("/health")

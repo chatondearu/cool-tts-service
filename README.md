@@ -1,25 +1,31 @@
 # cool-tts-service
 
-Open-source **Text-to-Speech HTTP API** aimed at **fast CPU inference**, with a **modular** design so the engine can later be swapped for a heavier GPU-backed model.
+Open-source **Text-to-Speech HTTP API** aimed at **fast CPU inference**, with a **modular** design so the engine can later be swapped for a heavier GPU-backed model. Includes a **Nuxt 4 web UI** for browser-based TTS generation.
 
 ## Stack
 
 - **TTS:** [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (ONNX Runtime, lightweight on CPU)
 - **API:** [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)
+- **UI:** [Nuxt 4](https://nuxt.com/) + [Nuxt UI v4](https://ui4.nuxt.com/) + [nuxt-auth-utils](https://nuxt.com/modules/auth-utils)
 - **Python:** 3.10+ (recommended: match the Nix dev shell — **3.11**)
-- **Containers:** Docker + Compose ([`production_api/Dockerfile`](production_api/Dockerfile), [`docker-compose.yml`](docker-compose.yml))
+- **Containers:** Docker + Compose ([`api/Dockerfile`](api/Dockerfile), [`ui/Dockerfile`](ui/Dockerfile), [`docker-compose.yml`](docker-compose.yml))
 
 ## Layout
 
 ```text
 cool-tts-service/
-├── production_api/            # HTTP API + Kokoro engine wrapper
+├── api/                       # HTTP API + Kokoro engine wrapper
 │   ├── main.py                # FastAPI app (POST /generate, GET /voices, GET /health)
 │   ├── tts_engine.py          # KokoroTTS thin wrapper
 │   ├── requirements_api.txt
 │   ├── Dockerfile
 │   ├── models/                # kokoro-v1.0.onnx, voices-v1.0.bin (not in git)
 │   └── voices/                # Custom voice bundles (not in git)
+├── ui/                        # Nuxt 4 web UI
+│   ├── nuxt.config.ts
+│   ├── Dockerfile
+│   ├── server/api/            # Auth + proxy routes to FastAPI
+│   └── app/pages/             # Login, TTS, Voices pages
 ├── voice_prep_module/         # Offline voice preparation
 │   ├── extract_voice.py       # Index WAVs + pack .pt files into npz bundle
 │   ├── extract_voice_from_wav.py  # [Experimental] WAV -> placeholder embedding
@@ -44,7 +50,7 @@ Use **Nix** + **uv** (see [`doc/deployment.md`](doc/deployment.md) for details):
 ```bash
 nix develop
 uv venv --python "${UV_PYTHON:-python3}" .venv
-uv pip install --python .venv/bin/python -r production_api/requirements_api.txt
+uv pip install --python .venv/bin/python -r api/requirements_api.txt
 source .venv/bin/activate
 ```
 
@@ -57,7 +63,7 @@ Download from [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx
 - `kokoro-v1.0.onnx`
 - `voices-v1.0.bin`
 
-Place them under `production_api/models/` **or** set env vars:
+Place them under `api/models/` **or** set env vars:
 
 - `KOKORO_MODEL_PATH`
 - `KOKORO_VOICES_BIN_PATH`
@@ -65,7 +71,7 @@ Place them under `production_api/models/` **or** set env vars:
 ### 3. Run the API
 
 ```bash
-cd production_api
+cd api
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -107,31 +113,59 @@ uv pip install --python .venv/bin/python -r voice_prep_module/requirements_prep.
 # 3. Pack into a custom bundle
 python voice_prep_module/extract_voice.py \
   --input-dir voice_prep_module/raw_audios \
-  --output-dir production_api/voices
+  --output-dir api/voices
 
 # 4. Merge with the official bundle
 python voice_prep_module/merge_voice_bundles.py \
-  --base production_api/models/voices-v1.0.bin \
-  --overlay production_api/voices/custom_voices.bin \
-  --output production_api/voices/merged_voices.bin
+  --base api/models/voices-v1.0.bin \
+  --overlay api/voices/custom_voices.bin \
+  --output api/voices/merged_voices.bin
 
 # 5. Point the API at the merged file
-export KOKORO_VOICES_BIN_PATH=production_api/voices/merged_voices.bin
+export KOKORO_VOICES_BIN_PATH=api/voices/merged_voices.bin
 ```
+
+## Web UI
+
+The Nuxt 4 UI lives in `ui/` and provides a browser interface for TTS generation.
+
+### Local development
+
+```bash
+cd ui
+nix shell nixpkgs#nodejs_22 --command bash
+npm install
+npm run dev
+```
+
+The UI runs on <http://localhost:3000> and proxies API calls to the FastAPI backend at `API_BASE_URL` (default `http://localhost:8000`).
+
+### Environment variables (UI)
+
+| Variable | Purpose |
+|----------|---------|
+| `NUXT_SESSION_PASSWORD` | Encryption key for session cookies (min 32 chars; auto-generated in dev) |
+| `API_BASE_URL` | FastAPI backend URL (default `http://localhost:8000`) |
+| `API_TOKEN` | Optional Bearer token for FastAPI authentication |
+| `ADMIN_USER` | Login username (default `admin`) |
+| `ADMIN_PASSWORD` | Login password |
 
 ## Docker
 
-Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`production_api/models/`** on the host (not baked into the image). Optional voice bundles go under **`production_api/voices/`**.
+Copy `.env.example` to `.env` and set at minimum `NUXT_SESSION_PASSWORD` and `ADMIN_PASSWORD`.
+
+Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`api/models/`** on the host (not baked into the image). Optional voice bundles go under **`api/voices/`**.
 
 ```bash
 docker compose build
 docker compose up
 ```
 
-- Health: `GET http://127.0.0.1:8000/health`
-- API docs: <http://127.0.0.1:8000/docs>
+- UI: <http://localhost:3000>
+- API health: `GET http://localhost:8000/health`
+- API docs: <http://localhost:8000/docs>
 
-To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`.
+To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
 
 ## Roadmap / TODO
 
