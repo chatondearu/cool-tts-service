@@ -8,9 +8,9 @@ services:
       - ./generator/voices:/app/voices:ro
     environment:
       - SERVICE_URL_API_8000=/tts-server
-      - DOMAIN_NAME=${SERVICE_FQDN_UI}
+      - _APP_URL=$SERVICE_URL_UI
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - API_TOKEN=${SERVICE_BASE64_64_API_TOKEN}
+      - API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - ROOT_PATH=/tts-server
       # Uncomment to use a merged bundle (placed in the voices volume):
       # - KOKORO_VOICES_BIN_PATH=${KOKORO_VOICES_BIN_PATH:-/app/voices/merged_voices.bin}
@@ -29,11 +29,11 @@ services:
     environment:
       - SERVICE_URL_UI_3000
       - DOMAIN_NAME=${SERVICE_FQDN_UI}
-      - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
+      - NUXT_SESSION_PASSWORD=$SERVICE_PASSWORD_SESSION
       - NUXT_API_BASE_URL=http://api:8000
-      - NUXT_API_TOKEN=${SERVICE_BASE64_64_API_TOKEN}
-      - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
-      - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
+      - NUXT_API_TOKEN=$API_TOKEN
+      - NUXT_ADMIN_USER=$SERVICE_USER_ADMIN
+      - NUXT_ADMIN_PASSWORD=$SERVICE_PASSWORD_ADMIN
     depends_on:
       api:
         condition: service_healthy
