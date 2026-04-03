@@ -3,20 +3,13 @@ services:
     build:
       context: ./generator
       dockerfile: Dockerfile
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.tts-server.rule=PathPrefix(`/tts-server`)"
-      - "traefik.http.routers.tts-server.entryPoints=http"
-      - "traefik.http.middlewares.tts-server-strip.stripprefix.prefixes=/tts-server"
-      - "traefik.http.routers.tts-server.middlewares=tts-server-strip"
-      - "traefik.http.services.tts-server.loadbalancer.server.port=8000"
     volumes:
       - ./generator/models:/app/models:ro
       - ./generator/voices:/app/voices:ro
     environment:
+      SERVICE_URL_API_8000=/tts-server
       PYTHONUNBUFFERED: "1"
-      # Coolify: magic vars (SERVICE_*) are generated once per stack; override via API_TOKEN in the UI if needed.
-      API_TOKEN: "${API_TOKEN:-${SERVICE_BASE64_64_TTS_API:-}}"
+      API_TOKEN: "${SERVICE_BASE64_64_API_TOKEN}"
       ROOT_PATH: "/tts-server"
       # Uncomment to use a merged bundle (placed in the voices volume):
       # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
@@ -32,19 +25,13 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ui.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.ui.entryPoints=http"
-      - "traefik.http.routers.ui.priority=1"
-      - "traefik.http.services.ui.loadbalancer.server.port=3000"
     environment:
-      # Coolify: SERVICE_PASSWORD_64_* satisfies Nuxt min length; override in UI or use .env locally.
-      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:-${SERVICE_PASSWORD_64_TTS_SESSION:-}}"
+      SERVICE_URL_UI_3000
+      NUXT_SESSION_PASSWORD: "${SERVICE_PASSWORD_SESSION}"
       NUXT_API_BASE_URL: "http://api:8000"
-      NUXT_API_TOKEN: "${API_TOKEN:-${SERVICE_BASE64_64_TTS_API:-}}"
-      NUXT_ADMIN_USER: "${ADMIN_USER:-admin}"
-      NUXT_ADMIN_PASSWORD: "${ADMIN_PASSWORD:-${SERVICE_PASSWORD_64_TTS_ADMIN:-}}"
+      NUXT_API_TOKEN: "${SERVICE_BASE64_64_API_TOKEN}"
+      NUXT_ADMIN_USER: "${SERVICE_USER_ADMIN}"
+      NUXT_ADMIN_PASSWORD: "${SERVICE_PASSWORD_ADMIN}"
     depends_on:
       api:
         condition: service_healthy

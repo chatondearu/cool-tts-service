@@ -1,6 +1,6 @@
 # Deployment and local development
 
-See the root [`README.md`](../README.md) for project goals and layout; this file focuses on how to run and ship the service.
+See the root `[README.md](../README.md)` for project goals and layout; this file focuses on how to run and ship the service.
 
 ## Nix development shell (workstation)
 
@@ -19,7 +19,7 @@ cd /path/to/cool-tts-service
 
 The dev shell pins **Python 3.11** via Nix (`python311`); the app targets **3.10+**, so you can point `uv` at another interpreter if needed.
 
-Python dependencies are **not** installed from Nixpkgs for the app; use **`uv`** into a project virtualenv. The shell sets **`UV_PYTHON`** to the Nix `python3` so `uv` does not pick a host interpreter by mistake.
+Python dependencies are **not** installed from Nixpkgs for the app; use `**uv`** into a project virtualenv. The shell sets `**UV_PYTHON**` to the Nix `python3` so `uv` does not pick a host interpreter by mistake.
 
 ```bash
 uv venv --python "${UV_PYTHON:-python3}" .venv
@@ -35,7 +35,7 @@ From the repo root (with deps installed):
 cd generator && python -c "from main import app; print(app.title)"
 ```
 
-Starting **`uvicorn`** loads Kokoro on startup and **requires** the `.onnx` and `voices-*.bin` files (see below).
+Starting `**uvicorn**` loads Kokoro on startup and **requires** the `.onnx` and `voices-*.bin` files (see below).
 
 Place Kokoro assets under `generator/models/` (e.g. `kokoro-v1.0.onnx`, `voices-v1.0.bin`) or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`.
 
@@ -50,21 +50,25 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 #### Internal (used by the Nuxt UI)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Liveness/readiness probe |
-| `GET` | `/voices` | List available voice ids from the loaded bundle |
+
+| Method | Path        | Description                                                     |
+| ------ | ----------- | --------------------------------------------------------------- |
+| `GET`  | `/health`   | Liveness/readiness probe                                        |
+| `GET`  | `/voices`   | List available voice ids from the loaded bundle                 |
 | `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`) |
+
 
 #### OpenAI-compatible (Open WebUI, Home Assistant, etc.)
 
 These routes let external tools that speak the OpenAI TTS protocol use the same Kokoro engine without any adapter:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/models` | List models (`kokoro-v1.0`) |
-| `GET` | `/v1/audio/voices` | List voices as `[{"id", "name"}]` |
+
+| Method | Path               | Description                                                                     |
+| ------ | ------------------ | ------------------------------------------------------------------------------- |
+| `GET`  | `/v1/models`       | List models (`kokoro-v1.0`)                                                     |
+| `GET`  | `/v1/audio/voices` | List voices as `[{"id", "name"}]`                                               |
 | `POST` | `/v1/audio/speech` | Synthesize text → WAV (`model`, `input`, `voice`, `speed`, optional `language`) |
+
 
 When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
 
@@ -74,9 +78,9 @@ When `language` is omitted from `/v1/audio/speech`, it is inferred from the voic
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
-On **NixOS/Linux**, PyPI wheels (`onnxruntime`, native extensions, **`soundfile`** → `libsndfile`) need the dev shell `LD_LIBRARY_PATH`. The flake prepends **`pkgs.stdenv.cc.cc.lib`** (GCC 14 on **nixpkgs 25.11**), then **`zlib`** / **`libsndfile`**.
+On **NixOS/Linux**, PyPI wheels (`onnxruntime`, native extensions, `**soundfile`** → `libsndfile`) need the dev shell `LD_LIBRARY_PATH`. The flake prepends `**pkgs.stdenv.cc.cc.lib**` (GCC 14 on **nixpkgs 25.11**), then `**zlib`** / `**libsndfile**`.
 
-If **`nix develop`** or **`nix`** fails with `CXXABI_1.3.15` **before** the shell starts, the **parent** process is picking a bad `libstdc++` from `LD_LIBRARY_PATH`. Use **`direnv reload`** after updating the flake, or run **`env -u LD_LIBRARY_PATH nix develop`** once.
+If `**nix develop**` or `**nix**` fails with `CXXABI_1.3.15` **before** the shell starts, the **parent** process is picking a bad `libstdc++` from `LD_LIBRARY_PATH`. Use `**direnv reload`** after updating the flake, or run `**env -u LD_LIBRARY_PATH nix develop**` once.
 
 ## Web UI (local)
 
@@ -100,13 +104,15 @@ Copy `.env.example` to `.env` at the repo root and set at minimum:
 
 The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/tts-server`, no host port mapping). It uses **Coolify magic environment variables** so secrets can be generated automatically on deploy (see [Magic Environment Variables](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose)):
 
-| Compose default chain | Coolify generates |
-|----------------------|-------------------|
-| `SERVICE_BASE64_64_TTS_API` | Long random string for `API_TOKEN` / `NUXT_API_TOKEN` (when `API_TOKEN` is unset) |
-| `SERVICE_PASSWORD_64_TTS_SESSION` | Random password for `NUXT_SESSION_PASSWORD` (when unset) |
-| `SERVICE_PASSWORD_64_TTS_ADMIN` | Random password for admin login (when `ADMIN_PASSWORD` is unset) |
 
-Coolify detects these names from the compose file and pre-fills them in the UI; values stay stable across redeploys. **`COOLIFY_RESOURCE_UUID`** and other [predefined variables](https://coolify.io/docs/knowledge-base/environment-variables#predefined-variables) remain available if you add your own mappings.
+| Compose default chain             | Coolify generates                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| `SERVICE_BASE64_64_API_TOKEN`       | Long random string for `API_TOKEN` / `NUXT_API_TOKEN` |
+| `SERVICE_PASSWORD_SESSION` | Random password for `NUXT_SESSION_PASSWORD`                       |
+| `SERVICE_PASSWORD_ADMIN`   | Random password for admin login                 |
+
+
+Coolify detects these names from the compose file and pre-fills them in the UI; values stay stable across redeploys. `**COOLIFY_RESOURCE_UUID`** and other [predefined variables](https://coolify.io/docs/knowledge-base/environment-variables#predefined-variables) remain available if you add your own mappings.
 
 If you run **only** `docker-compose.yml` outside Coolify (no `.env`), those fallbacks resolve to empty strings—set `NUXT_SESSION_PASSWORD`, `ADMIN_PASSWORD`, and optionally `API_TOKEN` explicitly. **Local development** without a reverse proxy should layer the local override, which keeps strict checks for UI secrets:
 
@@ -125,16 +131,16 @@ UI_PORT=3001
 
 Two services start:
 
-- **`api`** (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories **`generator/models/`** and **`generator/voices/`** are mounted read-only.
-- **`ui`** (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
+- `**api**` (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories `**generator/models/**` and `**generator/voices/**` are mounted read-only.
+- `**ui**` (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
 
 For Coolify, use the main compose file directly (`docker compose up`); Traefik handles routing — see below.
 
 Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `generator/models/`.
 
-For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `generator/voices/`, and set **`KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
+For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `generator/voices/`, and set `**KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
 
-To secure the FastAPI with a Bearer token, set **`API_TOKEN`** in `.env`; the UI will inject it automatically when proxying requests.
+To secure the FastAPI with a Bearer token, set `**API_TOKEN**` in `.env`; the UI will inject it automatically when proxying requests.
 
 ### Coolify / single-domain deployment
 
