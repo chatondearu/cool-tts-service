@@ -44,6 +44,6 @@ services:
       - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
       - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
     depends_on:
-      api:
+      cooltts-api:
         condition: service_healthy
     restart: unless-stopped
