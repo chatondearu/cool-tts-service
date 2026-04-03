@@ -37,6 +37,8 @@ cool-tts-service/
 │   ├── development.md         # Local dev: Nix vs without Nix, UI env, smoke tests
 │   ├── deployment.md          # API summary, Docker / Coolify / NixOS library notes
 │   └── voice-preparation.md   # Full voice prep guide (concepts, workflow, FAQ)
+├── scripts/
+│   └── dev-local.sh           # Run API + Nuxt together (outside Docker)
 ├── docker-compose.yml
 ├── flake.nix / flake.lock / .envrc
 ├── AGENTS.md
@@ -46,6 +48,8 @@ cool-tts-service/
 ## Local development (two setups)
 
 Use **either** the Nix flake **or** a plain Python + Node install. Step-by-step commands, `ui/.env`, and troubleshooting live in **[`doc/development.md`](doc/development.md)**.
+
+**API + UI in one command** (after `.venv` + `ui/node_modules` are ready): [`./scripts/dev-local.sh`](scripts/dev-local.sh) — see [`doc/development.md`](doc/development.md#api--ui-together-one-terminal).
 
 ### With Nix
 

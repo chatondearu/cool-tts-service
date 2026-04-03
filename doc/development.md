@@ -96,6 +96,28 @@ If you use **Nix only for Node**, a one-off shell is enough: `nix shell nixpkgs#
 
 ---
 
+## API + UI together (one terminal)
+
+From the **repository root**, after installing API deps into `.venv` and running `npm install` in `ui/`:
+
+```bash
+./scripts/dev-local.sh
+```
+
+This starts **uvicorn** in the background (`generator/`, default port **8000**) and **Nuxt** in the foreground (`ui/`, default port **3000**). **Ctrl+C** stops the UI and the script tears down the API process.
+
+Custom ports:
+
+```bash
+API_PORT=9000 UI_PORT=3001 ./scripts/dev-local.sh
+```
+
+If you change `API_PORT`, set **`NUXT_API_BASE_URL`** in `ui/.env` to the same host/port (e.g. `http://127.0.0.1:9000`).
+
+On **Windows**, use **WSL** or run the API and UI in two terminals; the script targets Bash on Linux/macOS.
+
+---
+
 ## Shared: Kokoro model files
 
 Download assets from the [kokoro-onnx release `model-files-v1.0`](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0), e.g.:
@@ -118,7 +140,7 @@ Copy `ui/.env.example` → `ui/.env` and set at least:
 | `NUXT_SESSION_PASSWORD` | Session cookie encryption (min 32 characters) |
 | `ADMIN_PASSWORD` | Login password for the UI |
 
-Optional: `API_BASE_URL` (default `http://localhost:8000`), `API_TOKEN` if the API uses Bearer auth, `ADMIN_USER` (default `admin`).
+Optional: `NUXT_API_BASE_URL` (default `http://localhost:8000` in `ui/.env.example`), `NUXT_API_TOKEN` if the API uses Bearer auth, `NUXT_ADMIN_USER` (default `admin`).
 
 ---
 

@@ -88,6 +88,8 @@ source .venv/bin/activate
 cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+**API + UI (local stack, one terminal):** from repo root, `./scripts/dev-local.sh` (requires `.venv` with `uvicorn`, `ui/node_modules`; see [`doc/development.md`](doc/development.md#api--ui-together-one-terminal)).
+
 (`UV_PYTHON` is set in the Nix shell; without `--python .venv/bin/python`, `uv pip` may try to write into the read-only Nix interpreter.)
 
 **Voice prep** (torch + numpy; separate from API venv if you prefer):

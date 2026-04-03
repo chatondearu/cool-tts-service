@@ -56,6 +56,7 @@
                 echo "  optional: uv pip install -r voice_prep_module/requirements_prep.txt"
                 echo "  API:      cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
                 echo "  UI:       cd ui && npm install && npm run dev"
+                echo "  both:     ./scripts/dev-local.sh   # API + UI (after .venv + ui/node_modules)"
                 echo "  dev docs: doc/development.md (without Nix: same API/UI steps with host Python 3.10+ + Node 22)"
               '';
           };
