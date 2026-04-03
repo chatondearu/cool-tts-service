@@ -1,12 +1,12 @@
 # Local development override — no Traefik, direct port mapping.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up
 services:
-  api:
+  cooltts-api:
     ports:
       - "${API_PORT:-9000}:9000"
     environment:
       ROOT_PATH: ""
 
-  ui:
+  cooltts:
     ports:
       - "${UI_PORT:-3000}:3000"

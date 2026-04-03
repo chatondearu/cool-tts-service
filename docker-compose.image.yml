@@ -9,7 +9,7 @@
 #
 # Pin a release: set COOL_TTS_IMAGE_TAG=v1.0.0 (or latest) in .env.
 services:
-  api:
+  cooltts-api:
     image: ghcr.io/chatondearu/cool-tts-service-api:${COOL_TTS_IMAGE_TAG:-latest}
     volumes:
       - ./generator/models:/app/models
@@ -30,17 +30,17 @@ services:
       start_period: 120s
       retries: 3
 
-  ui:
+  cooltts:
     image: ghcr.io/chatondearu/cool-tts-service-ui:${COOL_TTS_IMAGE_TAG:-latest}
     environment:
       - SERVICE_URL_COOLTTS_3000
       - DOMAIN_NAME=${SERVICE_FQDN_COOLTTS_3000}
       - NUXT_SESSION_PASSWORD=$SERVICE_PASSWORD_SESSION
-      - NUXT_API_BASE_URL=http://api:9000
+      - NUXT_API_BASE_URL=http://cooltts-api:9000
       - NUXT_API_TOKEN=$API_TOKEN
       - NUXT_ADMIN_USER=$SERVICE_USER_ADMIN
       - NUXT_ADMIN_PASSWORD=$SERVICE_PASSWORD_ADMIN
     depends_on:
-      api:
+      cooltts-api:
         condition: service_healthy
     restart: unless-stopped
