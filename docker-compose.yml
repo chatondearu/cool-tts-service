@@ -10,7 +10,7 @@ services:
       - ./generator/models:/app/models
       - ./generator/voices:/app/voices
     environment:
-      - SERVICE_FQDN_API_9000=/tts-server
+      - SERVICE_URL_API_9000=/tts-server
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - ROOT_PATH=/tts-server
@@ -33,12 +33,12 @@ services:
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-dev}
     environment:
-      - SERVICE_FQDN_UI_3000
-      - NUXT_SESSION_PASSWORD=$SERVICE_PASSWORD_SESSION
+      - SERVICE_URL_UI_3000
+      - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
       - NUXT_API_BASE_URL=http://api:9000
       - NUXT_API_TOKEN=$API_TOKEN
-      - NUXT_ADMIN_USER=$SERVICE_USER_ADMIN
-      - NUXT_ADMIN_PASSWORD=$SERVICE_PASSWORD_ADMIN
+      - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
+      - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
     depends_on:
       api:
         condition: service_healthy
