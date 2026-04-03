@@ -28,8 +28,26 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!response.ok) {
-    const detail = await response.text()
-    throw createError({ statusCode: response.status, message: detail })
+    const text = await response.text()
+    let message = text
+    try {
+      const j = JSON.parse(text) as { detail?: string | Array<{ msg?: string }> }
+      if (typeof j.detail === 'string') {
+        message = j.detail
+      }
+      else if (Array.isArray(j.detail)) {
+        message = j.detail.map(e => e.msg ?? JSON.stringify(e)).join('; ')
+      }
+    }
+    catch {
+      /* keep raw body */
+    }
+    throw createError({
+      statusCode: response.status,
+      message,
+      statusMessage: message,
+      data: { message, detail: message },
+    })
   }
 
   setResponseHeader(event, 'Content-Type', 'audio/wav')

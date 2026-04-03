@@ -14,14 +14,15 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import soundfile as sf
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
+import model_bootstrap
 from tts_engine import KokoroTTS
 
 logger = logging.getLogger("cool-tts")
@@ -31,6 +32,9 @@ _API_TOKEN = os.environ.get("API_TOKEN", "")
 _ROOT_PATH = os.environ.get("ROOT_PATH", "")
 
 _MODEL_ID = "kokoro-v1.0"
+
+_MAX_ONNX_BYTES = 400 * 1024 * 1024
+_MAX_VOICES_BIN_BYTES = 64 * 1024 * 1024
 
 # Kokoro voice prefix → language code used by misaki / espeak-ng.
 _VOICE_PREFIX_TO_LANG: dict[str, str] = {
@@ -54,6 +58,66 @@ def _infer_language(voice_id: str, explicit: Optional[str] = None) -> str:
         return explicit
     prefix = voice_id[:1] if voice_id else ""
     return _VOICE_PREFIX_TO_LANG.get(prefix, _DEFAULT_LANG)
+
+
+def _resolved_model_path() -> Path:
+    return Path(os.environ.get("KOKORO_MODEL_PATH", str(_default_model_path())))
+
+
+def _resolved_voices_bin_path() -> Path:
+    return Path(os.environ.get("KOKORO_VOICES_BIN_PATH", str(_default_voices_bin_path())))
+
+
+def _tts_unavailable_message(
+    model_path: Path,
+    voices_bin_path: Path,
+    technical: Optional[str] = None,
+) -> str:
+    parts = [
+        "TTS engine is not loaded: Kokoro model files are missing or invalid.",
+        f"Expected ONNX at {model_path} and voices bundle at {voices_bin_path}.",
+        "Add files from https://github.com/thewh1teagle/kokoro-onnx/releases (tag model-files-v1.0), "
+        "or set KOKORO_AUTO_DOWNLOAD=1 with a writable models directory (see deployment docs).",
+    ]
+    if technical:
+        parts.append(f"Details: {technical}")
+    return " ".join(parts)
+
+
+def _try_load_tts(model_path: Path, voices_bin_path: Path) -> tuple[Optional[KokoroTTS], Optional[str]]:
+    try:
+        return KokoroTTS(model_path, voices_bin_path), None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Kokoro load failed: %s", exc)
+        return None, str(exc)
+
+
+async def _bootstrap_and_load(app: FastAPI) -> None:
+    model_path = _resolved_model_path()
+    voices_bin_path = _resolved_voices_bin_path()
+    logger.info("Model path: %s", model_path)
+    logger.info("Voices path: %s", voices_bin_path)
+
+    dl_ok, dl_err = await asyncio.to_thread(
+        model_bootstrap.ensure_kokoro_files,
+        model_path,
+        voices_bin_path,
+    )
+    if not dl_ok and dl_err:
+        logger.warning("KOKORO_AUTO_DOWNLOAD: %s", dl_err)
+
+    tts, load_err = await asyncio.to_thread(_try_load_tts, model_path, voices_bin_path)
+    app.state.tts = tts
+    if tts is not None:
+        app.state.tts_error = None
+        logger.info("TTS ready — %d voices available", len(tts.list_voices()))
+    else:
+        app.state.tts_error = _tts_unavailable_message(
+            model_path,
+            voices_bin_path,
+            load_err,
+        )
+        logger.warning("TTS not loaded — %s", app.state.tts_error)
 
 
 class _BearerTokenMiddleware(BaseHTTPMiddleware):
@@ -88,15 +152,7 @@ def _default_voices_bin_path() -> Path:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    model_path = Path(os.environ.get("KOKORO_MODEL_PATH", str(_default_model_path())))
-    voices_bin_path = Path(
-        os.environ.get("KOKORO_VOICES_BIN_PATH", str(_default_voices_bin_path()))
-    )
-    logger.info("Loading model from %s", model_path)
-    logger.info("Loading voices from %s", voices_bin_path)
-    tts = KokoroTTS(model_path, voices_bin_path)
-    app.state.tts = tts
-    logger.info("TTS ready — %d voices available", len(tts.list_voices()))
+    await _bootstrap_and_load(app)
     yield
 
 
@@ -107,20 +163,38 @@ if _API_TOKEN:
     logger.info("Bearer token authentication enabled")
 
 
+def _require_tts(request: Request) -> KokoroTTS:
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    if tts is None:
+        detail = getattr(request.app.state, "tts_error", None) or _tts_unavailable_message(
+            _resolved_model_path(),
+            _resolved_voices_bin_path(),
+        )
+        raise HTTPException(status_code=503, detail=detail)
+    return tts
+
+
 # ---------------------------------------------------------------------------
 # Internal routes (used by the Nuxt UI)
 # ---------------------------------------------------------------------------
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health(request: Request) -> dict[str, Any]:
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    body: dict[str, Any] = {"status": "ok", "tts_ready": tts is not None}
+    err = getattr(request.app.state, "tts_error", None)
+    if err:
+        body["tts_error"] = err
+    return body
 
 
 @app.get("/voices")
 async def voices(request: Request) -> dict[str, list[str]]:
-    """List all available voice ids from the loaded bundle."""
-    tts: KokoroTTS = request.app.state.tts
+    """List all available voice ids from the loaded bundle (empty if TTS is not loaded)."""
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    if tts is None:
+        return {"voices": []}
     return {"voices": tts.list_voices()}
 
 
@@ -156,7 +230,7 @@ def _synthesize_wav_bytes(
 
 @app.post("/generate")
 async def generate(request: Request, body: GenerateRequest) -> StreamingResponse:
-    tts: KokoroTTS = request.app.state.tts
+    tts = _require_tts(request)
 
     available = tts.list_voices()
     if body.voice_id not in available:
@@ -179,6 +253,86 @@ async def generate(request: Request, body: GenerateRequest) -> StreamingResponse
         media_type="audio/wav",
         headers={"Content-Disposition": 'attachment; filename="speech.wav"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Admin: model files (requires API_TOKEN when set)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/admin/models/status")
+async def admin_models_status(request: Request) -> dict[str, Any]:
+    model_path = _resolved_model_path()
+    voices_bin_path = _resolved_voices_bin_path()
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    out: dict[str, Any] = {
+        "tts_ready": tts is not None,
+        "tts_error": getattr(request.app.state, "tts_error", None),
+        "model_path": str(model_path),
+        "model_exists": model_path.is_file(),
+        "voices_path": str(voices_bin_path),
+        "voices_exists": voices_bin_path.is_file(),
+    }
+    if model_path.is_file():
+        out["model_bytes"] = model_path.stat().st_size
+    if voices_bin_path.is_file():
+        out["voices_bytes"] = voices_bin_path.stat().st_size
+    return out
+
+
+@app.post("/admin/models/upload")
+async def admin_models_upload(
+    onnx: UploadFile | None = File(None),
+    voices_bin: UploadFile | None = File(None),
+) -> dict[str, Any]:
+    if (onnx is None or not onnx.filename) and (voices_bin is None or not voices_bin.filename):
+        raise HTTPException(
+            status_code=422,
+            detail="Provide at least one file field: onnx and/or voices_bin.",
+        )
+
+    model_path = _resolved_model_path()
+    voices_bin_path = _resolved_voices_bin_path()
+    saved: list[str] = []
+
+    if onnx is not None and onnx.filename:
+        body = await onnx.read()
+        if len(body) > _MAX_ONNX_BYTES:
+            raise HTTPException(status_code=413, detail="ONNX file exceeds maximum allowed size.")
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = model_path.with_suffix(model_path.suffix + ".part")
+        tmp.write_bytes(body)
+        tmp.replace(model_path)
+        saved.append("onnx")
+
+    if voices_bin is not None and voices_bin.filename:
+        body = await voices_bin.read()
+        if len(body) > _MAX_VOICES_BIN_BYTES:
+            raise HTTPException(status_code=413, detail="Voices bundle exceeds maximum allowed size.")
+        voices_bin_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = voices_bin_path.with_suffix(voices_bin_path.suffix + ".part")
+        tmp.write_bytes(body)
+        tmp.replace(voices_bin_path)
+        saved.append("voices_bin")
+
+    return {
+        "saved": saved,
+        "message": "Files written. Call POST /admin/models/reload to load them into the running process.",
+    }
+
+
+@app.post("/admin/models/reload")
+async def admin_models_reload(request: Request) -> dict[str, Any]:
+    app = request.app
+    model_path = _resolved_model_path()
+    voices_bin_path = _resolved_voices_bin_path()
+    tts, load_err = await asyncio.to_thread(_try_load_tts, model_path, voices_bin_path)
+    app.state.tts = tts
+    if tts is not None:
+        app.state.tts_error = None
+        return {"tts_ready": True, "voice_count": len(tts.list_voices())}
+    app.state.tts_error = _tts_unavailable_message(model_path, voices_bin_path, load_err)
+    return {"tts_ready": False, "error": app.state.tts_error}
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +367,7 @@ async def openai_speech(
             f"Supported: {', '.join(sorted(_SUPPORTED_RESPONSE_FORMATS))}.",
         )
 
-    tts: KokoroTTS = request.app.state.tts
+    tts = _require_tts(request)
 
     available = tts.list_voices()
     if body.voice not in available:
@@ -238,13 +392,18 @@ async def openai_speech(
 @app.get("/v1/audio/voices")
 async def openai_voices(request: Request) -> list[dict[str, str]]:
     """List voices in OpenAI-compatible format."""
-    tts: KokoroTTS = request.app.state.tts
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    if tts is None:
+        return []
     return [{"id": v, "name": v} for v in tts.list_voices()]
 
 
 @app.get("/v1/models")
-async def openai_models() -> dict:
-    """Minimal OpenAI-compatible models listing."""
+async def openai_models(request: Request) -> dict:
+    """Minimal OpenAI-compatible models listing (empty when TTS is not loaded)."""
+    tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
+    if tts is None:
+        return {"object": "list", "data": []}
     return {
         "object": "list",
         "data": [

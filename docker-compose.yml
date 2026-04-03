@@ -4,14 +4,17 @@ services:
       context: ./generator
       dockerfile: Dockerfile
     volumes:
-      - ./generator/models:/app/models:ro
-      - ./generator/voices:/app/voices:ro
+      # Read-write so KOKORO_AUTO_DOWNLOAD and POST /admin/models/upload can persist files.
+      - ./generator/models:/app/models
+      - ./generator/voices:/app/voices
     environment:
       - SERVICE_URL_API_8000=/tts-server
       - _APP_URL=$SERVICE_URL_UI
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - ROOT_PATH=/tts-server
+      - KOKORO_AUTO_DOWNLOAD=${KOKORO_AUTO_DOWNLOAD:-}
+      - KOKORO_ONNX_VARIANT=${KOKORO_ONNX_VARIANT:-}
       # Uncomment to use a merged bundle (placed in the voices volume):
       # - KOKORO_VOICES_BIN_PATH=${KOKORO_VOICES_BIN_PATH:-/app/voices/merged_voices.bin}
     restart: unless-stopped

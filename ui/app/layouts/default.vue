@@ -13,6 +13,10 @@ const navItems: NavigationMenuItem[] = [{
   label: 'Voices',
   icon: 'i-lucide-mic',
   to: '/voices',
+}, {
+  label: 'Model files',
+  icon: 'i-lucide-package',
+  to: '/models',
 }]
 
 const bottomItems: NavigationMenuItem[] = [{

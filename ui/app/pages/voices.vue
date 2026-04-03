@@ -57,7 +57,10 @@ const rows = computed<VoiceRow[]>(() =>
 
         <template v-if="!voices.length" #footer>
           <p class="text-center text-muted text-sm">
-            No voices available. Make sure the API is running and voices are loaded.
+            No voices available. Ensure Kokoro model files are installed and the engine was reloaded.
+            <NuxtLink to="/models" class="text-primary underline ml-1">
+              Model files
+            </NuxtLink>
           </p>
         </template>
       </UCard>

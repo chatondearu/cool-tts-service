@@ -35,9 +35,16 @@ From the repo root (with deps installed):
 cd generator && python -c "from main import app; print(app.title)"
 ```
 
-Starting `**uvicorn**` loads Kokoro on startup and **requires** the `.onnx` and `voices-*.bin` files (see below).
+Starting `**uvicorn**` attempts to load Kokoro on startup. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis routes return **503** with an explanatory `detail`, while `GET /health` stays **200** and includes `tts_ready` (and `tts_error` when the engine is not loaded).
 
 Place Kokoro assets under `generator/models/` (e.g. `kokoro-v1.0.onnx`, `voices-v1.0.bin`) or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`.
+
+Optional first-boot download from the official [kokoro-onnx release](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0):
+
+- Set `**KOKORO_AUTO_DOWNLOAD=1`** (values `1`, `true`, `yes`, `on`). Parent directories of the target paths must be **writable**.
+- Set `**KOKORO_ONNX_VARIANT**` to `f32` (default, `kokoro-v1.0.onnx`), `int8` (`kokoro-v1.0.int8.onnx`), or `fp16` (`kokoro-v1.0.fp16.onnx`) to control which ONNX is fetched when auto-download runs.
+
+Docker Compose passes `KOKORO_AUTO_DOWNLOAD` and `KOKORO_ONNX_VARIANT` from the host `.env` when set.
 
 Run the API:
 
@@ -53,9 +60,17 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 | Method | Path        | Description                                                     |
 | ------ | ----------- | --------------------------------------------------------------- |
-| `GET`  | `/health`   | Liveness/readiness probe                                        |
-| `GET`  | `/voices`   | List available voice ids from the loaded bundle                 |
-| `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`) |
+| `GET`  | `/health`   | Liveness probe; JSON includes `tts_ready` and optional `tts_error` |
+| `GET`  | `/voices`   | List voice ids (empty list if TTS is not loaded)                |
+| `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`); **503** if TTS is not loaded |
+
+#### Admin (when `API_TOKEN` is set, use `Authorization: Bearer …`)
+
+| Method | Path                     | Description |
+| ------ | ------------------------ | ----------- |
+| `GET`  | `/admin/models/status`   | Resolved paths, file presence, sizes, `tts_ready` |
+| `POST` | `/admin/models/upload`   | Multipart: optional `onnx` and/or `voices_bin` (writes to configured paths) |
+| `POST` | `/admin/models/reload`   | Reload Kokoro from disk into the running process |
 
 
 #### OpenAI-compatible (Open WebUI, Home Assistant, etc.)
@@ -65,9 +80,9 @@ These routes let external tools that speak the OpenAI TTS protocol use the same 
 
 | Method | Path               | Description                                                                     |
 | ------ | ------------------ | ------------------------------------------------------------------------------- |
-| `GET`  | `/v1/models`       | List models (`kokoro-v1.0`)                                                     |
+| `GET`  | `/v1/models`       | List models (`kokoro-v1.0` when loaded; **empty** `data` if TTS is not ready)      |
 | `GET`  | `/v1/audio/voices` | List voices as `[{"id", "name"}]`                                               |
-| `POST` | `/v1/audio/speech` | Synthesize text → WAV (`model`, `input`, `voice`, `speed`, optional `language`) |
+| `POST` | `/v1/audio/speech` | Synthesize text → WAV (`model`, `input`, `voice`, `speed`, optional `language`); **503** if TTS is not loaded |
 
 
 When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
@@ -84,14 +99,15 @@ If `**nix develop**` or `**nix**` fails with `CXXABI_1.3.15` **before** the shel
 
 ## Web UI (local)
 
-The Nuxt 4 UI lives in `ui/`. Node.js is not in the Nix dev shell by default; use `nix shell nixpkgs#nodejs_22`:
+The Nuxt 4 UI lives in `ui/`. The flake dev shell (`nix develop`) includes **Node.js 22** and **npm**, so you can run the UI without a nested `nix shell`:
 
 ```bash
 cd ui
-nix shell nixpkgs#nodejs_22 --command bash
 npm install
 npm run dev
 ```
+
+If you are not using the flake shell, use e.g. `nix shell nixpkgs#nodejs_22` once, then the same `npm` commands.
 
 The UI runs on `http://localhost:3000`. Set `API_BASE_URL`, `ADMIN_USER`, and `ADMIN_PASSWORD` in `ui/.env` (copy from `ui/.env.example`).
 
@@ -131,7 +147,7 @@ UI_PORT=3001
 
 Two services start:
 
-- `**api**` (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories `**generator/models/**` and `**generator/voices/**` are mounted read-only.
+- `**api**` (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories `**generator/models/**` and `**generator/voices/**` are mounted **read-write** so `KOKORO_AUTO_DOWNLOAD` and `POST /admin/models/upload` can persist files.
 - `**ui**` (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
 
 For Coolify, use the main compose file directly (`docker compose up`); Traefik handles routing — see below.

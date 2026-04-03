@@ -15,7 +15,8 @@ Open-source **Text-to-Speech HTTP API** aimed at **fast CPU inference**, with a 
 ```text
 cool-tts-service/
 ├── generator/                 # HTTP API + Kokoro engine wrapper
-│   ├── main.py                # FastAPI app (POST /generate, GET /voices, GET /health)
+│   ├── main.py                # FastAPI app (TTS + OpenAI-compatible + admin model routes)
+│   ├── model_bootstrap.py     # Optional KOKORO_AUTO_DOWNLOAD from official release
 │   ├── tts_engine.py          # KokoroTTS thin wrapper
 │   ├── requirements_api.txt
 │   ├── Dockerfile
@@ -67,6 +68,8 @@ Place them under `generator/models/` **or** set env vars:
 
 - `KOKORO_MODEL_PATH`
 - `KOKORO_VOICES_BIN_PATH`
+
+Without these files the API still **starts**; synthesis returns **503** until models are present (or use `KOKORO_AUTO_DOWNLOAD=1` with a writable `generator/models` directory — see [`doc/deployment.md`](doc/deployment.md)).
 
 ### 3. Run the API
 

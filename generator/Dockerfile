@@ -12,7 +12,7 @@ WORKDIR /app
 COPY requirements_api.txt .
 RUN pip install --no-cache-dir -r requirements_api.txt
 
-COPY main.py tts_engine.py ./
+COPY main.py tts_engine.py model_bootstrap.py ./
 
 RUN mkdir -p models voices
 

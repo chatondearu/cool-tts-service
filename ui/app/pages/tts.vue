@@ -3,6 +3,12 @@ definePageMeta({ title: 'Text to Speech' })
 
 const toast = useToast()
 
+const { data: health } = await useFetch<{
+  status: string
+  tts_ready: boolean
+  tts_error?: string
+}>('/api/tts/health')
+
 const languages = [
   { label: 'French', value: 'fr-fr' },
   { label: 'English (US)', value: 'en-us' },
@@ -22,6 +28,10 @@ const audioUrl = ref<string | null>(null)
 const { data: voicesData } = await useFetch<{ voices: string[] }>('/api/tts/voices')
 
 const voices = computed(() => voicesData.value?.voices ?? [])
+
+const ttsBlocked = computed(
+  () => health.value != null && health.value.tts_ready === false,
+)
 
 watch(voices, (v) => {
   if (v.length && !voiceId.value) {
@@ -56,10 +66,12 @@ async function generate() {
     audioUrl.value = URL.createObjectURL(blob)
     toast.add({ title: 'Audio generated!', color: 'success' })
   }
-  catch (e: any) {
+  catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string; statusMessage?: string }
     toast.add({
       title: 'Generation failed',
-      description: e?.data?.message || 'Unknown error',
+      description:
+        err?.data?.message ?? err?.statusMessage ?? err?.message ?? 'Unknown error',
       color: 'error',
     })
   }
@@ -95,6 +107,26 @@ onUnmounted(() => {
         </template>
 
         <div class="space-y-4">
+          <UAlert
+            v-if="ttsBlocked"
+            color="warning"
+            variant="subtle"
+          >
+            <div class="space-y-2">
+              <p class="font-medium">
+                TTS engine is not loaded
+              </p>
+              <p class="text-sm opacity-90">
+                {{ health?.tts_error || 'Add ONNX and voices on the server, then reload the engine from Model files.' }}
+              </p>
+              <UButton
+                to="/models"
+                label="Open model files"
+                size="xs"
+              />
+            </div>
+          </UAlert>
+
           <UFormField label="Text">
             <UTextarea
               v-model="text"
@@ -137,6 +169,7 @@ onUnmounted(() => {
             label="Generate"
             icon="i-lucide-play"
             :loading="generating"
+            :disabled="ttsBlocked"
             block
             @click="generate"
           />
