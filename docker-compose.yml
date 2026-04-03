@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: generator/Dockerfile
       args:
-        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+        - APP_VERSION=${APP_VERSION:-0.0.0-dev}
     volumes:
       # Read-write so KOKORO_AUTO_DOWNLOAD and POST /admin/models/upload can persist files.
       - ./generator/models:/app/models
@@ -31,12 +31,12 @@ services:
       context: .
       dockerfile: ui/Dockerfile
       args:
-        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+        - APP_VERSION=${APP_VERSION:-0.0.0-dev}
     environment:
       - SERVICE_URL_UI_3000
       - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
       - NUXT_API_BASE_URL=http://api:9000
-      - NUXT_API_TOKEN=$API_TOKEN
+      - NUXT_API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
       - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
     depends_on:
