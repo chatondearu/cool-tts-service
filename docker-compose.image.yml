@@ -1,12 +1,17 @@
+# Pre-built images from GitHub Container Registry (no local Docker build).
+# Requires a checkout or copy of this repo for compose paths, .env, and volume mounts.
+#
+# Usage (Coolify / Traefik — same routing as docker-compose.yml):
+#   docker compose -f docker-compose.image.yml up -d
+#
+# Local ports (with docker-compose.local.yml):
+#   docker compose -f docker-compose.image.yml -f docker-compose.local.yml up -d
+#
+# Pin a release: set COOL_TTS_IMAGE_TAG=v1.0.0 (or latest) in .env.
 services:
   api:
-    build:
-      context: .
-      dockerfile: generator/Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+    image: ghcr.io/chatondearu/cool-tts-service-api:${COOL_TTS_IMAGE_TAG:-latest}
     volumes:
-      # Read-write so KOKORO_AUTO_DOWNLOAD and POST /admin/models/upload can persist files.
       - ./generator/models:/app/models
       - ./generator/voices:/app/voices
     environment:
@@ -17,8 +22,6 @@ services:
       - ROOT_PATH=/tts-server
       - KOKORO_AUTO_DOWNLOAD=${KOKORO_AUTO_DOWNLOAD:-}
       - KOKORO_ONNX_VARIANT=${KOKORO_ONNX_VARIANT:-}
-      # Uncomment to use a merged bundle (placed in the voices volume):
-      # - KOKORO_VOICES_BIN_PATH=${KOKORO_VOICES_BIN_PATH:-/app/voices/merged_voices.bin}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
@@ -28,11 +31,7 @@ services:
       retries: 3
 
   ui:
-    build:
-      context: .
-      dockerfile: ui/Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+    image: ghcr.io/chatondearu/cool-tts-service-ui:${COOL_TTS_IMAGE_TAG:-latest}
     environment:
       - SERVICE_URL_UI_3000
       - DOMAIN_NAME=${SERVICE_FQDN_UI}

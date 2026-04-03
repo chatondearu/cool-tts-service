@@ -28,6 +28,19 @@ from tts_engine import KokoroTTS
 logger = logging.getLogger("cool-tts")
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _PACKAGE_DIR.parent
+
+
+def _read_app_version() -> str:
+    """SemVer from VERSION next to this package or at repo root (dev checkout)."""
+    for base in (_PACKAGE_DIR, _REPO_ROOT):
+        path = base / "VERSION"
+        if path.is_file():
+            return path.read_text(encoding="utf-8").strip()
+    return "0.0.0-dev"
+
+
+_APP_VERSION = _read_app_version()
 _API_TOKEN = os.environ.get("API_TOKEN", "")
 _ROOT_PATH = os.environ.get("ROOT_PATH", "")
 
@@ -156,7 +169,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Cool TTS Service", lifespan=lifespan, root_path=_ROOT_PATH)
+app = FastAPI(
+    title="Cool TTS Service",
+    version=_APP_VERSION,
+    lifespan=lifespan,
+    root_path=_ROOT_PATH,
+)
 
 if _API_TOKEN:
     app.add_middleware(_BearerTokenMiddleware)
@@ -182,7 +200,11 @@ def _require_tts(request: Request) -> KokoroTTS:
 @app.get("/health")
 async def health(request: Request) -> dict[str, Any]:
     tts: KokoroTTS | None = getattr(request.app.state, "tts", None)
-    body: dict[str, Any] = {"status": "ok", "tts_ready": tts is not None}
+    body: dict[str, Any] = {
+        "status": "ok",
+        "app_version": _APP_VERSION,
+        "tts_ready": tts is not None,
+    }
     err = getattr(request.app.state, "tts_error", None)
     if err:
         body["tts_error"] = err

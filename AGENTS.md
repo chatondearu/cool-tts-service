@@ -11,6 +11,8 @@
 
 Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** dependency and source paths from the tree or these docs.
 
+**Automation / agents:** run project commands inside the Nix dev shell so **Node.js 22**, **npm**, **Python**, and **`uv`** match the flake. From repo root use `nix develop` (interactive) or one-shot `nix develop --command '…'` (e.g. `nix develop --command 'cd ui && npm run build'`). Do not assume a system-wide `node`/`npm` outside the flake unless the user explicitly uses the non-Nix path in [`doc/development.md`](doc/development.md).
+
 ## Project shape
 
 | Area | Role |
@@ -61,7 +63,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness probe; includes `tts_ready`, optional `tts_error` |
+| `GET` | `/health` | Liveness probe; includes `app_version`, `tts_ready`, optional `tts_error` |
 | `GET` | `/voices` | List voice ids (empty if engine not loaded) |
 | `POST` | `/generate` | Synthesize text → WAV; **503** if no engine |
 | `GET` | `/admin/models/status` | Model paths, file status (requires `API_TOKEN` when set) |

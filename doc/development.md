@@ -13,6 +13,8 @@ This guide covers **two ways** to work on the repo on your machine: **with the N
 
 Application code targets **Python 3.10+**; the flake pins **3.11** for reproducibility.
 
+When running **npm**, **node**, **uv**, or **uvicorn** from scripts or CI on a machine that relies on Nix, use **`nix develop`** (or `nix develop --command '…'`) from the repo root so the toolchain is the one defined in [`flake.nix`](../flake.nix).
+
 ---
 
 ## Option 1 — With Nix

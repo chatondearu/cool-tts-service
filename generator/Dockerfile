@@ -1,5 +1,11 @@
 # API image: runtime deps only; mount models/ and voices/ at run time (see docker-compose.yml).
+# Build from repository root: docker build -f generator/Dockerfile .
 FROM python:3.11-slim-bookworm
+
+ARG APP_VERSION=0.0.0-dev
+LABEL org.opencontainers.image.source="https://github.com/chatondearu/cool-tts-service" \
+      org.opencontainers.image.title="cool-tts-service-api" \
+      org.opencontainers.image.version="${APP_VERSION}"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -9,10 +15,11 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements_api.txt .
+COPY generator/requirements_api.txt .
 RUN pip install --no-cache-dir -r requirements_api.txt
 
-COPY main.py tts_engine.py model_bootstrap.py ./
+COPY VERSION /app/VERSION
+COPY generator/main.py generator/tts_engine.py generator/model_bootstrap.py ./
 
 RUN mkdir -p models voices
 

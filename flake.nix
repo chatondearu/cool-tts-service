@@ -1,5 +1,5 @@
 {
-  description = "cool-tts-service — flake dev shell (uv + Python 3.11, Node.js 22 + npm for UI, audio / PyPI wheels)";
+  description = "cool-tts-service — flake dev shell (uv + Python 3.11, Node.js 22 + npm for UI, audio / PyPI wheels). App SemVer: root VERSION file.";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 

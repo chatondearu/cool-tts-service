@@ -148,6 +148,12 @@ Copy `.env.example` to `.env` and set at minimum `NUXT_SESSION_PASSWORD` and `AD
 
 Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`generator/models/`** on the host (not baked into the image). Optional voice bundles go under **`generator/voices/`**.
 
+**Versioning:** the app SemVer lives in the root [`VERSION`](VERSION) file; `GET /health` returns `app_version`. Release notes: [`CHANGELOG.md`](CHANGELOG.md).
+
+### Pre-built images (no `docker build`)
+
+After a Git tag `v*` is pushed, CI publishes images to `ghcr.io/chatondearu/cool-tts-service-api` and `ghcr.io/chatondearu/cool-tts-service-ui`. Pull and run with [`docker-compose.image.yml`](docker-compose.image.yml) (set `COOL_TTS_IMAGE_TAG` in `.env`). See [`doc/deployment.md`](doc/deployment.md#pre-built-images-install-without-building).
+
 ### Local (without Traefik)
 
 ```bash

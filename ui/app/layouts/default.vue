@@ -4,6 +4,8 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 const route = useRoute()
 const { user, clear } = useUserSession()
 const toast = useToast()
+const config = useRuntimeConfig()
+const appVersion = computed(() => String(config.public.appVersion || '').trim())
 
 const navItems: NavigationMenuItem[] = [{
   label: 'Text to Speech',
@@ -61,6 +63,12 @@ async function logout() {
       </template>
 
       <template #footer="{ collapsed }">
+        <p
+          v-if="!collapsed && appVersion"
+          class="px-2 pb-1 text-xs text-muted"
+        >
+          v{{ appVersion }}
+        </p>
         <UDropdownMenu
           :items="[[{ label: 'Logout', icon: 'i-lucide-log-out', click: logout }]]"
         >

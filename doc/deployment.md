@@ -7,7 +7,7 @@ See the root [`README.md`](../README.md) for project goals and layout.
 
 ## API behavior (models and startup)
 
-Starting **uvicorn** attempts to load Kokoro. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis returns **503** with a `detail`, while `GET /health` stays **200** and includes `tts_ready` (and `tts_error` when the engine is not loaded).
+Starting **uvicorn** attempts to load Kokoro. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis returns **503** with a `detail`, while `GET /health` stays **200** and includes `app_version` (SemVer from the repo `VERSION` file), `tts_ready`, and `tts_error` when the engine is not loaded.
 
 Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`. Optional first-boot download: `KOKORO_AUTO_DOWNLOAD=1` and `KOKORO_ONNX_VARIANT` (`f32`, `int8`, `fp16`) — see [`development.md`](development.md). Docker Compose can pass these from the host `.env`.
 
@@ -18,7 +18,7 @@ Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOIC
 
 | Method | Path        | Description                                                     |
 | ------ | ----------- | --------------------------------------------------------------- |
-| `GET`  | `/health`   | Liveness probe; JSON includes `tts_ready` and optional `tts_error` |
+| `GET`  | `/health`   | Liveness probe; JSON includes `app_version`, `tts_ready`, and optional `tts_error` |
 | `GET`  | `/voices`   | List voice ids (empty list if TTS is not loaded)                |
 | `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`); **503** if TTS is not loaded |
 
@@ -60,6 +60,35 @@ If `**nix develop**` or `**nix**` fails with `CXXABI_1.3.15` **before** the shel
 Run the Nuxt app with Node 22 + npm; full **Nix vs non-Nix** steps and `ui/.env` are in [`development.md`](development.md).
 
 ## Production (Docker)
+
+### Pre-built images (install without building)
+
+Published on **GitHub Container Registry** when you push a Git tag `v*` (see `.github/workflows/release.yml`):
+
+- `ghcr.io/chatondearu/cool-tts-service-api:<tag>`
+- `ghcr.io/chatondearu/cool-tts-service-ui:<tag>`
+
+Use the same tag for both services (e.g. `v1.0.0` or `latest`). From a repo checkout (for `docker-compose.image.yml` paths and host volumes):
+
+1. Copy `.env.example` to `.env` and set secrets as below.
+2. Set `COOL_TTS_IMAGE_TAG` in `.env` (e.g. `v1.0.0` or `latest`).
+3. Run:
+
+```bash
+docker compose -f docker-compose.image.yml up -d
+```
+
+For **local ports**, layer `docker-compose.local.yml` as with the build-based stack:
+
+```bash
+docker compose -f docker-compose.image.yml -f docker-compose.local.yml up -d
+```
+
+Images do **not** bundle Kokoro ONNX/voices; keep using `generator/models/` (and optional `generator/voices/`) on the host, or enable `KOKORO_AUTO_DOWNLOAD` as documented below.
+
+On first use, open the **Packages** settings for your GitHub org/user and set each package visibility to **Public** if anonymous `docker pull` should work.
+
+### Build from source (default compose)
 
 Copy `.env.example` to `.env` at the repo root and set at minimum:
 
