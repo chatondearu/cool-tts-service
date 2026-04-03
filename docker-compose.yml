@@ -5,6 +5,7 @@ services:
       dockerfile: generator/Dockerfile
       args:
         - APP_VERSION=${APP_VERSION:-0.0.0-dev}
+    container_name: cool-tts-api
     volumes:
       # Read-write so KOKORO_AUTO_DOWNLOAD and POST /admin/models/upload can persist files.
       - ./generator/models:/app/models
@@ -12,7 +13,7 @@ services:
     environment:
       # Same magic identifier as `ui` so Coolify puts both routes on one FQDN:
       # `/` → port 3000 (ui), `/tts-server` → port 9000 (api). Different ids (e.g. UI vs API) get separate generated hosts, so `/tts-server` on the UI domain never reached the API.
-      - SERVICE_URL_API_9000=/tts-server
+      - SERVICE_URL_COOLTTS_9000=/tts-server
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - ROOT_PATH=/tts-server
@@ -34,8 +35,9 @@ services:
       dockerfile: ui/Dockerfile
       args:
         - APP_VERSION=${APP_VERSION:-0.0.0-dev}
+    container_name: cool-tts-ui
     environment:
-      - SERVICE_URL_UI_3000
+      - SERVICE_URL_COOLTTS_3000=/
       - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
       - NUXT_API_BASE_URL=http://api:9000
       - NUXT_API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
