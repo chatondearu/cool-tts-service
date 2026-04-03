@@ -98,7 +98,19 @@ Copy `.env.example` to `.env` at the repo root and set at minimum:
 - `NUXT_SESSION_PASSWORD` (min 32 chars)
 - `ADMIN_PASSWORD`
 
-The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/tts-server`, no host port mapping). For **local development** without a reverse proxy, layer the local override:
+The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/tts-server`, no host port mapping). It uses **Coolify magic environment variables** so secrets can be generated automatically on deploy (see [Magic Environment Variables](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose)):
+
+| Compose default chain | Coolify generates |
+|----------------------|-------------------|
+| `SERVICE_BASE64_64_TTS_API` | Long random string for `API_TOKEN` / `NUXT_API_TOKEN` (when `API_TOKEN` is unset) |
+| `SERVICE_PASSWORD_64_TTS_SESSION` | Random password for `NUXT_SESSION_PASSWORD` (when unset) |
+| `SERVICE_PASSWORD_64_TTS_ADMIN` | Random password for admin login (when `ADMIN_PASSWORD` is unset) |
+
+Coolify detects these names from the compose file and pre-fills them in the UI; values stay stable across redeploys. **`COOLIFY_RESOURCE_UUID`** and other [predefined variables](https://coolify.io/docs/knowledge-base/environment-variables#predefined-variables) remain available if you add your own mappings.
+
+If you run **only** `docker-compose.yml` outside Coolify (no `.env`), those fallbacks resolve to empty strings—set `NUXT_SESSION_PASSWORD`, `ADMIN_PASSWORD`, and optionally `API_TOKEN` explicitly. **Local development** without a reverse proxy should layer the local override, which keeps strict checks for UI secrets:
+
+For **local development** without a reverse proxy, layer the local override:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build

@@ -12,3 +12,7 @@ services:
     ports:
       - "${UI_PORT:-3000}:3000"
     labels: !reset []
+    environment:
+      # Local: require secrets in .env — SERVICE_* magic vars exist only on Coolify.
+      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:?Set NUXT_SESSION_PASSWORD (min 32 chars)}"
+      NUXT_ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}"

@@ -15,7 +15,8 @@ services:
       - ./generator/voices:/app/voices:ro
     environment:
       PYTHONUNBUFFERED: "1"
-      API_TOKEN: "${API_TOKEN:-}"
+      # Coolify: magic vars (SERVICE_*) are generated once per stack; override via API_TOKEN in the UI if needed.
+      API_TOKEN: "${API_TOKEN:-${SERVICE_BASE64_64_TTS_API:-}}"
       ROOT_PATH: "/tts-server"
       # Uncomment to use a merged bundle (placed in the voices volume):
       # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
@@ -38,11 +39,12 @@ services:
       - "traefik.http.routers.ui.priority=1"
       - "traefik.http.services.ui.loadbalancer.server.port=3000"
     environment:
-      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:?Set NUXT_SESSION_PASSWORD (min 32 chars)}"
+      # Coolify: SERVICE_PASSWORD_64_* satisfies Nuxt min length; override in UI or use .env locally.
+      NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:-${SERVICE_PASSWORD_64_TTS_SESSION:-}}"
       NUXT_API_BASE_URL: "http://api:8000"
-      NUXT_API_TOKEN: "${API_TOKEN:-}"
+      NUXT_API_TOKEN: "${API_TOKEN:-${SERVICE_BASE64_64_TTS_API:-}}"
       NUXT_ADMIN_USER: "${ADMIN_USER:-admin}"
-      NUXT_ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}"
+      NUXT_ADMIN_PASSWORD: "${ADMIN_PASSWORD:-${SERVICE_PASSWORD_64_TTS_ADMIN:-}}"
     depends_on:
       api:
         condition: service_healthy
