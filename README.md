@@ -170,7 +170,7 @@ Host ports: `API_PORT` and `UI_PORT` in `.env` (defaults: 9000 / 3000). The loca
 
 ### Coolify / single-domain deployment
 
-The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: UI at `/`, API under `/tts-server`. See [`doc/deployment.md`](doc/deployment.md) for Coolify env vars, Open WebUI / Home Assistant URLs, and merged voice bundles.
+The main `docker-compose.yml` uses Coolify **magic `SERVICE_URL_COOLTTS_*`** so UI and API share one domain: UI at `/`, API under `/tts-server`. See [`doc/deployment.md`](doc/deployment.md) for details, Open WebUI / Home Assistant URLs, and merged voice bundles.
 
 ## Roadmap / TODO
 

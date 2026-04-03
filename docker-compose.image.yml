@@ -15,8 +15,8 @@ services:
       - ./generator/models:/app/models
       - ./generator/voices:/app/voices
     environment:
-      - SERVICE_URL_API_9000=/tts-server
-      - _APP_URL=$SERVICE_URL_UI
+      # Match `ui` service: one FQDN for UI (/) and API (/tts-server) — see docker-compose.yml.
+      - SERVICE_URL_COOLTTS_9000=/tts-server
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - ROOT_PATH=/tts-server
@@ -33,8 +33,8 @@ services:
   ui:
     image: ghcr.io/chatondearu/cool-tts-service-ui:${COOL_TTS_IMAGE_TAG:-latest}
     environment:
-      - SERVICE_URL_UI_3000
-      - DOMAIN_NAME=${SERVICE_FQDN_UI}
+      - SERVICE_URL_COOLTTS_3000
+      - DOMAIN_NAME=${SERVICE_FQDN_COOLTTS_3000}
       - NUXT_SESSION_PASSWORD=$SERVICE_PASSWORD_SESSION
       - NUXT_API_BASE_URL=http://api:9000
       - NUXT_API_TOKEN=$API_TOKEN

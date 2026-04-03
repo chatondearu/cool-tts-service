@@ -26,7 +26,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`generator/requirements_api.txt`](generator/requirements_api.txt) | API + inference dependencies |
 | [`generator/models/`](generator/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
 | [`generator/Dockerfile`](generator/Dockerfile) | API image; models/voices mounted at run time |
-| [`docker-compose.yml`](docker-compose.yml) | `api` + `ui` services (Traefik labels for Coolify) |
+| [`docker-compose.yml`](docker-compose.yml) | `api` + `ui` services (Coolify magic `SERVICE_URL_COOLTTS_*` for same-host routing) |
 | [`docker-compose.local.yml`](docker-compose.local.yml) | Local override: host ports, no Traefik labels, no `ROOT_PATH` |
 | [`ui/`](ui/) | Nuxt 4 web UI (Nuxt UI v4, nuxt-auth-utils) |
 | [`ui/nuxt.config.ts`](ui/nuxt.config.ts) | Nuxt configuration |

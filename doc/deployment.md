@@ -104,7 +104,7 @@ Copy `.env.example` to `.env` at the repo root and set at minimum:
 - `NUXT_SESSION_PASSWORD` (min 32 chars)
 - `ADMIN_PASSWORD`
 
-The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/tts-server`, no host port mapping). It uses **Coolify magic environment variables** so secrets can be generated automatically on deploy (see [Magic Environment Variables](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose)):
+The main `docker-compose.yml` is configured for **Coolify** (proxy routes from magic `SERVICE_URL_*`, `ROOT_PATH=/tts-server`, no host port mapping). It uses **Coolify magic environment variables** so secrets can be generated automatically on deploy (see [Magic Environment Variables](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose)):
 
 
 | Compose default chain             | Coolify generates                                                                 |
@@ -115,6 +115,8 @@ The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `
 
 
 Coolify detects these names from the compose file and pre-fills them in the UI; values stay stable across redeploys. `**COOLIFY_RESOURCE_UUID`** and other [predefined variables](https://coolify.io/docs/knowledge-base/environment-variables#predefined-variables) remain available if you add your own mappings.
+
+**Same domain for UI and API:** Both services use the same magic URL identifier **`COOLTTS`**: `SERVICE_URL_COOLTTS_3000` on **`ui`** (traffic to `/`) and `SERVICE_URL_COOLTTS_9000=/tts-server` on **`api`**. Coolify’s docs show that **different** identifiers (for example `UI` vs `API`) produce **different** generated hosts; then a custom domain attached only to the UI would send `/tts-server/...` to Nuxt (login redirect) instead of FastAPI. After changing this, redeploy the stack so Coolify regenerates proxy routes. For **`docker-compose.image.yml`**, `DOMAIN_NAME` uses `SERVICE_FQDN_COOLTTS_3000` so it stays aligned with the UI URL.
 
 If you run **only** `docker-compose.yml` outside Coolify (no `.env`), those fallbacks resolve to empty strings—set `NUXT_SESSION_PASSWORD`, `ADMIN_PASSWORD`, and optionally `API_TOKEN` explicitly. **Local development** without a reverse proxy should layer the local override, which keeps strict checks for UI secrets:
 
@@ -146,12 +148,14 @@ To secure the FastAPI with a Bearer token, set `**API_TOKEN**` in `.env`; the UI
 
 ### Coolify / single-domain deployment
 
-The compose file includes **Traefik labels** for single-domain routing behind Coolify (or any Traefik-managed platform):
+Coolify turns the **`SERVICE_URL_COOLTTS_*`** entries into proxy rules (Traefik or Caddy, depending on the server):
 
-- **UI** serves at the domain root (`/`)
-- **API** serves under `/tts-server` (Traefik strips the prefix before forwarding to the container)
+- **UI** serves at the domain root (`/`) via `SERVICE_URL_COOLTTS_3000`
+- **API** serves under `/tts-server` via `SERVICE_URL_COOLTTS_9000=/tts-server` (prefix is stripped before the request reaches uvicorn)
 
-Coolify detects the labels automatically. In the Coolify UI, assign one domain to the stack (e.g. `https://tts.example.com`). The `ports:` section is **not used** by Traefik — it routes via the internal Docker network. `API_PORT` / `UI_PORT` only matter for local development.
+In the Coolify UI, assign your public domain to this stack (e.g. `https://tts.example.com`). The `ports:` section is **not used** by the platform proxy — it routes over the Docker network. `API_PORT` / `UI_PORT` only matter for local development.
+
+If the API path returns the Nuxt login page, check **Strip prefix** / path settings for the API route in Coolify (see Coolify docs and issues around path prefixes) and confirm both services were redeployed after compose changes.
 
 External tools that talk to the API use the `/tts-server` prefix:
 
