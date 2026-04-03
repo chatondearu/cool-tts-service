@@ -8,6 +8,7 @@ services:
       - ./generator/voices:/app/voices:ro
     environment:
       - SERVICE_URL_API_8000=/tts-server
+      - DOMAIN_NAME=${SERVICE_FQDN_UI}
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - API_TOKEN=${SERVICE_BASE64_64_API_TOKEN}
       - ROOT_PATH=/tts-server
