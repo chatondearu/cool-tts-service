@@ -29,17 +29,17 @@ services:
       start_period: 120s
       retries: 3
 
-  cooltts-ui:
+  cooltts:
     build:
       context: .
       dockerfile: ui/Dockerfile
       args:
         - APP_VERSION=${APP_VERSION:-0.0.0-dev}
-    container_name: cooltts-ui
+    container_name: cooltts
     environment:
       - SERVICE_URL_COOLTTS_3000=/
       - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
-      - NUXT_API_BASE_URL=http://api:9000
+      - NUXT_API_BASE_URL=http://cooltts-api:9000
       - NUXT_API_TOKEN=${SERVICE_PASSWORD_APITOKEN}
       - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
       - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
