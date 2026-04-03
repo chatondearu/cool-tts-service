@@ -185,6 +185,8 @@ curl -sS -X POST http://127.0.0.1:9000/generate \
 
 Use `GET /voices` (or the UI) to pick a valid `voice_id`.
 
+Synthesis requests are logged as **one JSON line per call** in the API process output (see [`deployment.md`](deployment.md)). For local debugging with **full input text** in that JSON, add `-H "X-Cool-TTS-Debug-Log-Text: 1"` to the `curl` command.
+
 ### Automated test suite
 
 There is **no** bundled `pytest` suite yet; the checks above are the supported manual smoke path. If you add tests, document the command here (e.g. `pytest`).

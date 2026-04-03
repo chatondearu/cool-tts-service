@@ -19,7 +19,8 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 | Area | Role |
 |------|------|
-| [`generator/main.py`](generator/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes + admin model routes (`GET/POST /admin/models/…`) |
+| [`generator/main.py`](generator/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes + admin routes (`/admin/models/…`, `/admin/synthesis-logs`) |
+| [`generator/synthesis_logging.py`](generator/synthesis_logging.py) | Structured synthesis logs (JSON lines + in-memory ring buffer for the UI) |
 | [`generator/model_bootstrap.py`](generator/model_bootstrap.py) | Optional `KOKORO_AUTO_DOWNLOAD` fetch from kokoro-onnx `model-files-v1.0` release |
 | [`generator/tts_engine.py`](generator/tts_engine.py) | `KokoroTTS` — thin wrapper (24 kHz, `list_voices`, `generate_audio`) |
 | [`generator/requirements_api.txt`](generator/requirements_api.txt) | API + inference dependencies |
@@ -30,7 +31,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`ui/`](ui/) | Nuxt 4 web UI (Nuxt UI v4, nuxt-auth-utils) |
 | [`ui/nuxt.config.ts`](ui/nuxt.config.ts) | Nuxt configuration |
 | [`ui/server/api/`](ui/server/api/) | Auth routes + proxy to FastAPI |
-| [`ui/app/pages/`](ui/app/pages/) | Login, TTS, Voices pages |
+| [`ui/app/pages/`](ui/app/pages/) | Login, TTS, Voices, Model files, Synthesis logs |
 | [`ui/Dockerfile`](ui/Dockerfile) | UI image (Node 22, multi-stage) |
 | [`voice_prep_module/extract_voice.py`](voice_prep_module/extract_voice.py) | Index WAVs + pack `.pt` files into npz bundle |
 | [`voice_prep_module/extract_voice_from_wav.py`](voice_prep_module/extract_voice_from_wav.py) | **[Experimental]** WAV → random embedding placeholder |
@@ -58,6 +59,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `API_PORT` | Host port for the API container (default `9000`; ignored by Coolify) |
 | `UI_PORT` | Host port for the UI container (default `3000`; ignored by Coolify) |
 | `ROOT_PATH` | FastAPI root path prefix for reverse-proxy deployments (default empty; set to `/tts-server` in docker-compose) |
+| `TTS_SYNTHESIS_LOG_BUFFER_MAX` | Optional: max entries in the in-memory synthesis log ring buffer (default `500`) |
 
 ## API endpoints
 
@@ -71,6 +73,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `GET` | `/admin/models/status` | Model paths, file status (requires `API_TOKEN` when set) |
 | `POST` | `/admin/models/upload` | Multipart `onnx` / `voices_bin` |
 | `POST` | `/admin/models/reload` | Reload engine from disk |
+| `GET` | `/admin/synthesis-logs` | Recent synthesis events (ring buffer); query `limit`, `errors_only`, `client`, `route` |
 
 ### OpenAI-compatible (Open WebUI, Home Assistant `openai_tts`, etc.)
 

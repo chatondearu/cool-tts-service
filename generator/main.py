@@ -12,12 +12,15 @@ import asyncio
 import io
 import logging
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Optional
 
 import soundfile as sf
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+import synthesis_logging as synlog
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -252,23 +255,95 @@ def _synthesize_wav_bytes(
 
 @app.post("/generate")
 async def generate(request: Request, body: GenerateRequest) -> StreamingResponse:
-    tts = _require_tts(request)
+    request_id = str(uuid.uuid4())
+    t0 = time.perf_counter()
+
+    def _elapsed_ms() -> int:
+        return int((time.perf_counter() - t0) * 1000)
+
+    try:
+        tts = _require_tts(request)
+    except HTTPException as exc:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="generate",
+                request=request,
+                voice_id=body.voice_id,
+                language=body.language,
+                speed=body.speed,
+                text=body.text,
+                status_code=exc.status_code,
+                duration_ms=_elapsed_ms(),
+                error=synlog.http_error_message(exc.detail),
+            ),
+        )
+        raise
 
     available = tts.list_voices()
     if body.voice_id not in available:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="generate",
+                request=request,
+                voice_id=body.voice_id,
+                language=body.language,
+                speed=body.speed,
+                text=body.text,
+                status_code=422,
+                duration_ms=_elapsed_ms(),
+                error=(
+                    f"Unknown voice_id '{body.voice_id}'. "
+                    f"Use GET /voices for the list ({len(available)} available)."
+                ),
+            ),
+        )
         raise HTTPException(
             status_code=422,
             detail=f"Unknown voice_id '{body.voice_id}'. "
             f"Use GET /voices for the list ({len(available)} available).",
         )
 
-    wav_bytes = await asyncio.to_thread(
-        _synthesize_wav_bytes,
-        tts,
-        body.text,
-        body.voice_id,
-        body.language,
-        body.speed,
+    try:
+        wav_bytes = await asyncio.to_thread(
+            _synthesize_wav_bytes,
+            tts,
+            body.text,
+            body.voice_id,
+            body.language,
+            body.speed,
+        )
+    except Exception as exc:  # noqa: BLE001
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="generate",
+                request=request,
+                voice_id=body.voice_id,
+                language=body.language,
+                speed=body.speed,
+                text=body.text,
+                status_code=500,
+                duration_ms=_elapsed_ms(),
+                error=str(exc),
+            ),
+        )
+        raise HTTPException(status_code=500, detail="Synthesis failed.") from exc
+
+    synlog.emit_synthesis_event(
+        synlog.build_synthesis_payload(
+            request_id=request_id,
+            route="generate",
+            request=request,
+            voice_id=body.voice_id,
+            language=body.language,
+            speed=body.speed,
+            text=body.text,
+            status_code=200,
+            duration_ms=_elapsed_ms(),
+            wav_bytes=len(wav_bytes),
+        ),
     )
     return StreamingResponse(
         iter([wav_bytes]),
@@ -357,6 +432,34 @@ async def admin_models_reload(request: Request) -> dict[str, Any]:
     return {"tts_ready": False, "error": app.state.tts_error}
 
 
+@app.get("/admin/synthesis-logs")
+async def admin_synthesis_logs(
+    limit: int = Query(50, ge=1, le=200),
+    errors_only: bool = Query(False),
+    client: str = Query(""),
+    route: Optional[str] = Query(
+        None,
+        description="Filter by route: generate or openai_speech",
+    ),
+) -> dict[str, Any]:
+    if route is not None and route not in ("generate", "openai_speech"):
+        raise HTTPException(
+            status_code=422,
+            detail="route must be 'generate' or 'openai_speech'",
+        )
+    logs = synlog.query_synthesis_logs(
+        limit=limit,
+        errors_only=errors_only,
+        client_substring=client,
+        route_filter=route,
+    )
+    return {
+        "logs": logs,
+        "buffer_capacity": synlog.buffer_capacity(),
+        "returned": len(logs),
+    }
+
+
 # ---------------------------------------------------------------------------
 # OpenAI-compatible routes (Open WebUI, Home Assistant openai_tts, etc.)
 # ---------------------------------------------------------------------------
@@ -382,27 +485,118 @@ async def openai_speech(
     request: Request, body: OpenAISpeechRequest,
 ) -> StreamingResponse:
     """OpenAI-compatible speech synthesis endpoint."""
+    request_id = str(uuid.uuid4())
+    t0 = time.perf_counter()
+
+    def _elapsed_ms() -> int:
+        return int((time.perf_counter() - t0) * 1000)
+
+    lang_for_log = _infer_language(body.voice, body.language)
+
     if body.response_format not in _SUPPORTED_RESPONSE_FORMATS:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="openai_speech",
+                request=request,
+                voice_id=body.voice,
+                language=lang_for_log,
+                speed=body.speed,
+                text=body.input,
+                status_code=422,
+                duration_ms=_elapsed_ms(),
+                error=(
+                    f"Unsupported response_format '{body.response_format}'. "
+                    f"Supported: {', '.join(sorted(_SUPPORTED_RESPONSE_FORMATS))}."
+                ),
+            ),
+        )
         raise HTTPException(
             status_code=422,
             detail=f"Unsupported response_format '{body.response_format}'. "
             f"Supported: {', '.join(sorted(_SUPPORTED_RESPONSE_FORMATS))}.",
         )
 
-    tts = _require_tts(request)
+    try:
+        tts = _require_tts(request)
+    except HTTPException as exc:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="openai_speech",
+                request=request,
+                voice_id=body.voice,
+                language=lang_for_log,
+                speed=body.speed,
+                text=body.input,
+                status_code=exc.status_code,
+                duration_ms=_elapsed_ms(),
+                error=synlog.http_error_message(exc.detail),
+            ),
+        )
+        raise
 
     available = tts.list_voices()
     if body.voice not in available:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="openai_speech",
+                request=request,
+                voice_id=body.voice,
+                language=lang_for_log,
+                speed=body.speed,
+                text=body.input,
+                status_code=422,
+                duration_ms=_elapsed_ms(),
+                error=(
+                    f"Unknown voice '{body.voice}'. "
+                    f"Use GET /v1/audio/voices for the list ({len(available)} available)."
+                ),
+            ),
+        )
         raise HTTPException(
             status_code=422,
             detail=f"Unknown voice '{body.voice}'. "
             f"Use GET /v1/audio/voices for the list ({len(available)} available).",
         )
 
-    lang = _infer_language(body.voice, body.language)
+    lang = lang_for_log
 
-    wav_bytes = await asyncio.to_thread(
-        _synthesize_wav_bytes, tts, body.input, body.voice, lang, body.speed,
+    try:
+        wav_bytes = await asyncio.to_thread(
+            _synthesize_wav_bytes, tts, body.input, body.voice, lang, body.speed,
+        )
+    except Exception as exc:  # noqa: BLE001
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="openai_speech",
+                request=request,
+                voice_id=body.voice,
+                language=lang,
+                speed=body.speed,
+                text=body.input,
+                status_code=500,
+                duration_ms=_elapsed_ms(),
+                error=str(exc),
+            ),
+        )
+        raise HTTPException(status_code=500, detail="Synthesis failed.") from exc
+
+    synlog.emit_synthesis_event(
+        synlog.build_synthesis_payload(
+            request_id=request_id,
+            route="openai_speech",
+            request=request,
+            voice_id=body.voice,
+            language=lang,
+            speed=body.speed,
+            text=body.input,
+            status_code=200,
+            duration_ms=_elapsed_ms(),
+            wav_bytes=len(wav_bytes),
+        ),
     )
     return StreamingResponse(
         iter([wav_bytes]),

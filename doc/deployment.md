@@ -24,6 +24,10 @@ Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOIC
 | `GET`  | `/voices`   | List voice ids (empty list if TTS is not loaded)                |
 | `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`); **503** if TTS is not loaded |
 
+Each successful or failed synthesis on `POST /generate` and `POST /v1/audio/speech` emits **one JSON object per line** on the API logger (`cool-tts`), so `docker logs` / platform log streams stay easy to grep and ship to Loki or similar. By default the payload includes metadata only (`text_chars`, voice, language, `client_ip`, `user_agent`, `duration_ms`, `status_code`, `request_id`, etc.) — not the raw input text. To log the full input string for a **single** request (debug), send header **`X-Cool-TTS-Debug-Log-Text: 1`** (or `true` / `yes`). Avoid this in production unless you accept the privacy risk.
+
+The API also keeps the same events in an **in-memory ring buffer** (default **500** entries) for the Nuxt **Synthesis logs** admin page. Override with **`TTS_SYNTHESIS_LOG_BUFFER_MAX`**. The buffer is cleared on process restart.
+
 #### Admin (when `API_TOKEN` is set, use `Authorization: Bearer …`)
 
 | Method | Path                     | Description |
@@ -31,6 +35,7 @@ Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOIC
 | `GET`  | `/admin/models/status`   | Resolved paths, file presence, sizes, `tts_ready` |
 | `POST` | `/admin/models/upload`   | Multipart: optional `onnx` and/or `voices_bin` (writes to configured paths) |
 | `POST` | `/admin/models/reload`   | Reload Kokoro from disk into the running process |
+| `GET`  | `/admin/synthesis-logs`  | Recent synthesis events from the ring buffer; query: `limit` (1–200, default 50), `errors_only`, `client` (substring on IP or User-Agent), `route` (`generate` or `openai_speech`) |
 
 
 #### OpenAI-compatible (Open WebUI, Home Assistant, etc.)

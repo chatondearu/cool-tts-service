@@ -19,7 +19,7 @@ COPY generator/requirements_api.txt .
 RUN pip install --no-cache-dir -r requirements_api.txt
 
 COPY VERSION /app/VERSION
-COPY generator/main.py generator/tts_engine.py generator/model_bootstrap.py ./
+COPY generator/main.py generator/tts_engine.py generator/model_bootstrap.py generator/synthesis_logging.py ./
 
 RUN mkdir -p models voices
 

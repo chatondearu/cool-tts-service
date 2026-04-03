@@ -19,6 +19,10 @@ const navItems: NavigationMenuItem[] = [{
   label: 'Model files',
   icon: 'i-lucide-package',
   to: '/models',
+}, {
+  label: 'Synthesis logs',
+  icon: 'i-lucide-scroll-text',
+  to: '/logs',
 }]
 
 const bottomItems: NavigationMenuItem[] = [{
