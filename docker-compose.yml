@@ -1,11 +1,11 @@
 services:
-  api:
+  cooltts-api:
     build:
       context: .
       dockerfile: generator/Dockerfile
       args:
         - APP_VERSION=${APP_VERSION:-0.0.0-dev}
-    container_name: cool-tts-api
+    container_name: cooltts-api
     volumes:
       # Read-write so KOKORO_AUTO_DOWNLOAD and POST /admin/models/upload can persist files.
       - ./generator/models:/app/models
@@ -29,13 +29,13 @@ services:
       start_period: 120s
       retries: 3
 
-  ui:
+  cooltts-ui:
     build:
       context: .
       dockerfile: ui/Dockerfile
       args:
         - APP_VERSION=${APP_VERSION:-0.0.0-dev}
-    container_name: cool-tts-ui
+    container_name: cooltts-ui
     environment:
       - SERVICE_URL_COOLTTS_3000=/
       - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
