@@ -8,13 +8,13 @@ Open-source **Text-to-Speech HTTP API** aimed at **fast CPU inference**, with a 
 - **API:** [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)
 - **UI:** [Nuxt 4](https://nuxt.com/) + [Nuxt UI v4](https://ui4.nuxt.com/) + [nuxt-auth-utils](https://nuxt.com/modules/auth-utils)
 - **Python:** 3.10+ (recommended: match the Nix dev shell — **3.11**)
-- **Containers:** Docker + Compose ([`api/Dockerfile`](api/Dockerfile), [`ui/Dockerfile`](ui/Dockerfile), [`docker-compose.yml`](docker-compose.yml))
+- **Containers:** Docker + Compose ([`generator/Dockerfile`](generator/Dockerfile), [`ui/Dockerfile`](ui/Dockerfile), [`docker-compose.yml`](docker-compose.yml))
 
 ## Layout
 
 ```text
 cool-tts-service/
-├── api/                       # HTTP API + Kokoro engine wrapper
+├── generator/                 # HTTP API + Kokoro engine wrapper
 │   ├── main.py                # FastAPI app (POST /generate, GET /voices, GET /health)
 │   ├── tts_engine.py          # KokoroTTS thin wrapper
 │   ├── requirements_api.txt
@@ -50,11 +50,11 @@ Use **Nix** + **uv** (see [`doc/deployment.md`](doc/deployment.md) for details):
 ```bash
 nix develop
 uv venv --python "${UV_PYTHON:-python3}" .venv
-uv pip install --python .venv/bin/python -r api/requirements_api.txt
+uv pip install --python .venv/bin/python -r generator/requirements_api.txt
 source .venv/bin/activate
 ```
 
-Without Nix, use Python **3.10+** and install the same `requirements_api.txt` into a virtualenv.
+Without Nix, use Python **3.10+** and install `generator/requirements_api.txt` into a virtualenv.
 
 ### 2. Model files
 
@@ -63,7 +63,7 @@ Download from [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx
 - `kokoro-v1.0.onnx`
 - `voices-v1.0.bin`
 
-Place them under `api/models/` **or** set env vars:
+Place them under `generator/models/` **or** set env vars:
 
 - `KOKORO_MODEL_PATH`
 - `KOKORO_VOICES_BIN_PATH`
@@ -71,7 +71,7 @@ Place them under `api/models/` **or** set env vars:
 ### 3. Run the API
 
 ```bash
-cd api
+cd generator
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -113,16 +113,16 @@ uv pip install --python .venv/bin/python -r voice_prep_module/requirements_prep.
 # 3. Pack into a custom bundle
 python voice_prep_module/extract_voice.py \
   --input-dir voice_prep_module/raw_audios \
-  --output-dir api/voices
+  --output-dir generator/voices
 
 # 4. Merge with the official bundle
 python voice_prep_module/merge_voice_bundles.py \
-  --base api/models/voices-v1.0.bin \
-  --overlay api/voices/custom_voices.bin \
-  --output api/voices/merged_voices.bin
+  --base generator/models/voices-v1.0.bin \
+  --overlay generator/voices/custom_voices.bin \
+  --output generator/voices/merged_voices.bin
 
 # 5. Point the API at the merged file
-export KOKORO_VOICES_BIN_PATH=api/voices/merged_voices.bin
+export KOKORO_VOICES_BIN_PATH=generator/voices/merged_voices.bin
 ```
 
 ## Web UI
@@ -154,7 +154,7 @@ The UI runs on <http://localhost:3000> and proxies API calls to the FastAPI back
 
 Copy `.env.example` to `.env` and set at minimum `NUXT_SESSION_PASSWORD` and `ADMIN_PASSWORD`.
 
-Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`api/models/`** on the host (not baked into the image). Optional voice bundles go under **`api/voices/`**.
+Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`generator/models/`** on the host (not baked into the image). Optional voice bundles go under **`generator/voices/`**.
 
 ### Local (without Traefik)
 
@@ -166,11 +166,11 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 - API health: `GET http://localhost:8000/health`
 - API docs: <http://localhost:8000/docs>
 
-Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and removes the `/api` prefix.
+Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and sets `ROOT_PATH` to empty (no public path prefix on the API port).
 
 ### Coolify / single-domain deployment
 
-The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the API under `/api`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
+The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the TTS API under `/tts-server`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
 
 To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
 

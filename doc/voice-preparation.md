@@ -63,7 +63,7 @@ If you have not done so already, download the model assets from [kokoro-onnx rel
 - `kokoro-v1.0.onnx` — the TTS model
 - `voices-v1.0.bin` — the official voice bundle (~50 voices)
 
-Place both under `api/models/`.
+Place both under `generator/models/`.
 
 ## Finding and choosing voices
 
@@ -122,15 +122,15 @@ Run `extract_voice.py` to convert the `.pt` files into a single `.bin` bundle:
 ```bash
 python voice_prep_module/extract_voice.py \
   --input-dir voice_prep_module/raw_audios \
-  --output-dir api/voices
+  --output-dir generator/voices
 ```
 
 This produces:
 
 | Output | Description |
 |--------|-------------|
-| `api/voices/custom_voices.bin` | NPZ archive containing all `.pt` voices found in the input directory |
-| `api/voices/voice_prep_manifest.json` | JSON manifest listing packed voices and WAV metadata |
+| `generator/voices/custom_voices.bin` | NPZ archive containing all `.pt` voices found in the input directory |
+| `generator/voices/voice_prep_manifest.json` | JSON manifest listing packed voices and WAV metadata |
 
 If **no `.pt` files** are found, the script writes only the manifest with instructions explaining what to download.
 
@@ -139,7 +139,7 @@ If **no `.pt` files** are found, the script writes only the manifest with instru
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `--input-dir` | `voice_prep_module/raw_audios` | Directory to scan for `.pt` and `.wav` files |
-| `--output-dir` | `api/voices` | Where to write the bundle and manifest |
+| `--output-dir` | `generator/voices` | Where to write the bundle and manifest |
 | `--output-bundle` | *(auto)* | Full path for the output `.bin`; overrides `--bundle-name` |
 | `--bundle-name` | `custom_voices.bin` | Filename when `--output-bundle` is not set |
 
@@ -149,9 +149,9 @@ The custom bundle only contains the voices you added. To keep **all** official v
 
 ```bash
 python voice_prep_module/merge_voice_bundles.py \
-  --base api/models/voices-v1.0.bin \
-  --overlay api/voices/custom_voices.bin \
-  --output api/voices/merged_voices.bin
+  --base generator/models/voices-v1.0.bin \
+  --overlay generator/voices/custom_voices.bin \
+  --output generator/voices/merged_voices.bin
 ```
 
 If a voice key exists in both bundles, the **overlay** version wins (useful for replacing an official voice with your own variant).
@@ -164,8 +164,8 @@ Set the environment variable so the API loads your merged file instead of the de
 
 ```bash
 # Local dev
-export KOKORO_VOICES_BIN_PATH=api/voices/merged_voices.bin
-cd api && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+export KOKORO_VOICES_BIN_PATH=generator/voices/merged_voices.bin
+cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 For **Docker**, uncomment the line in `docker-compose.yml`:
@@ -240,7 +240,7 @@ python voice_prep_module/merge_voice_bundles.py --base BASE --overlay OVERLAY --
 python voice_prep_module/extract_voice_from_wav.py [OPTIONS]
 
   --wav PATH         Input audio file (default: raw_audios/nemo_0_FR.wav)
-  --output PATH      Output bundle path (default: api/voices/custom_from_wav.bin)
+  --output PATH      Output bundle path (default: generator/voices/custom_from_wav.bin)
   --voice-key NAME   Key inside the NPZ (default: normalized WAV filename stem)
 ```
 
@@ -256,8 +256,8 @@ For now, use the WAV files as **reference recordings** and pick the closest offi
 
 Check the following:
 
-1. **Was the bundle generated?** Look for `api/voices/custom_voices.bin` (or your merged file). If missing, re-run `extract_voice.py`.
-2. **Is `KOKORO_VOICES_BIN_PATH` set?** The API loads `api/models/voices-v1.0.bin` by default. Override it to point at your merged bundle.
+1. **Was the bundle generated?** Look for `generator/voices/custom_voices.bin` (or your merged file). If missing, re-run `extract_voice.py`.
+2. **Is `KOKORO_VOICES_BIN_PATH` set?** The API loads `generator/models/voices-v1.0.bin` by default. Override it to point at your merged bundle.
 3. **Did you restart the API?** The voice bundle is loaded once at startup. Restart `uvicorn` or the Docker container after changing the bundle.
 
 ### What is inside a `.bin` / `.npz` bundle?
@@ -267,7 +267,7 @@ It is a standard NumPy NPZ archive. Each key is a voice id (e.g. `af_sarah`) and
 ```python
 import numpy as np
 
-data = np.load("api/voices/merged_voices.bin")
+data = np.load("generator/voices/merged_voices.bin")
 print("Voices:", sorted(data.files))
 print("Shape of first voice:", data[data.files[0]].shape)
 ```

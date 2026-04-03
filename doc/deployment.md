@@ -23,7 +23,7 @@ Python dependencies are **not** installed from Nixpkgs for the app; use **`uv`**
 
 ```bash
 uv venv --python "${UV_PYTHON:-python3}" .venv
-uv pip install --python .venv/bin/python -r api/requirements_api.txt
+uv pip install --python .venv/bin/python -r generator/requirements_api.txt
 source .venv/bin/activate
 ```
 
@@ -32,17 +32,17 @@ source .venv/bin/activate
 From the repo root (with deps installed):
 
 ```bash
-cd api && python -c "from main import app; print(app.title)"
+cd generator && python -c "from main import app; print(app.title)"
 ```
 
 Starting **`uvicorn`** loads Kokoro on startup and **requires** the `.onnx` and `voices-*.bin` files (see below).
 
-Place Kokoro assets under `api/models/` (e.g. `kokoro-v1.0.onnx`, `voices-v1.0.bin`) or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`.
+Place Kokoro assets under `generator/models/` (e.g. `kokoro-v1.0.onnx`, `voices-v1.0.bin`) or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`.
 
 Run the API:
 
 ```bash
-cd api
+cd generator
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -68,9 +68,9 @@ These routes let external tools that speak the OpenAI TTS protocol use the same 
 
 When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
 
-**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` (local) or `https://<domain>/api/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
+**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
-**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech` (local) or `https://<domain>/api/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
+**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech` (local) or `https://<domain>/tts-server/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
@@ -98,7 +98,7 @@ Copy `.env.example` to `.env` at the repo root and set at minimum:
 - `NUXT_SESSION_PASSWORD` (min 32 chars)
 - `ADMIN_PASSWORD`
 
-The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/api`, no host port mapping). For **local development** without a reverse proxy, layer the local override:
+The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/tts-server`, no host port mapping). For **local development** without a reverse proxy, layer the local override:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
@@ -113,14 +113,14 @@ UI_PORT=3001
 
 Two services start:
 
-- **`api`** (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories **`api/models/`** and **`api/voices/`** are mounted read-only.
+- **`api`** (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories **`generator/models/`** and **`generator/voices/`** are mounted read-only.
 - **`ui`** (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
 
 For Coolify, use the main compose file directly (`docker compose up`); Traefik handles routing — see below.
 
-Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `api/models/`.
+Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `generator/models/`.
 
-For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `api/voices/`, and set **`KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
+For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bundles.py`, place it under `generator/voices/`, and set **`KOKORO_VOICES_BIN_PATH`** (see commented example in `docker-compose.yml`).
 
 To secure the FastAPI with a Bearer token, set **`API_TOKEN`** in `.env`; the UI will inject it automatically when proxying requests.
 
@@ -129,14 +129,14 @@ To secure the FastAPI with a Bearer token, set **`API_TOKEN`** in `.env`; the UI
 The compose file includes **Traefik labels** for single-domain routing behind Coolify (or any Traefik-managed platform):
 
 - **UI** serves at the domain root (`/`)
-- **API** serves under `/api` (Traefik strips the prefix before forwarding to the container)
+- **API** serves under `/tts-server` (Traefik strips the prefix before forwarding to the container)
 
 Coolify detects the labels automatically. In the Coolify UI, assign one domain to the stack (e.g. `https://tts.example.com`). The `ports:` section is **not used** by Traefik — it routes via the internal Docker network. `API_PORT` / `UI_PORT` only matter for local development.
 
-External tools that talk to the API use the `/api` prefix:
+External tools that talk to the API use the `/tts-server` prefix:
 
-- **Open WebUI** — TTS base URL: `https://tts.example.com/api/v1`
-- **Home Assistant** (`openai_tts`) — endpoint: `https://tts.example.com/api/v1/audio/speech`
-- **Swagger docs** — `https://tts.example.com/api/docs`
+- **Open WebUI** — TTS base URL: `https://tts.example.com/tts-server/v1`
+- **Home Assistant** (`openai_tts`) — endpoint: `https://tts.example.com/tts-server/v1/audio/speech`
+- **Swagger docs** — `https://tts.example.com/tts-server/docs`
 
-The `ROOT_PATH` env var (set to `/api` in docker-compose) tells FastAPI it is served behind a prefix so Swagger UI and OpenAPI schema URLs resolve correctly.
+The `ROOT_PATH` env var (set to `/tts-server` in docker-compose) tells FastAPI it is served behind a prefix so Swagger UI and OpenAPI schema URLs resolve correctly.

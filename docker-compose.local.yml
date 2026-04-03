@@ -4,11 +4,11 @@ services:
   api:
     ports:
       - "${API_PORT:-8000}:8000"
-    labels: []
+    labels: !reset []
     environment:
       ROOT_PATH: ""
 
   ui:
     ports:
       - "${UI_PORT:-3000}:3000"
-    labels: []
+    labels: !reset []

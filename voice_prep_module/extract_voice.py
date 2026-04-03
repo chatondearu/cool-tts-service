@@ -74,7 +74,7 @@ def _pack_pt_files(pt_files: list[Path]) -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Prepare Kokoro voice artifacts under api/voices/",
+        description="Prepare Kokoro voice artifacts under generator/voices/",
     )
     parser.add_argument(
         "--input-dir",
@@ -85,7 +85,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=_repo_root() / "api" / "voices",
+        default=_repo_root() / "generator" / "voices",
         help="Where to write the npz bundle and manifest",
     )
     parser.add_argument(

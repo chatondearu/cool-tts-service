@@ -14,11 +14,11 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 | Area | Role |
 |------|------|
-| [`api/main.py`](api/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes (`POST /v1/audio/speech`, `GET /v1/audio/voices`, `GET /v1/models`) |
-| [`api/tts_engine.py`](api/tts_engine.py) | `KokoroTTS` — thin wrapper (24 kHz, `list_voices`, `generate_audio`) |
-| [`api/requirements_api.txt`](api/requirements_api.txt) | API + inference dependencies |
-| [`api/models/`](api/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
-| [`api/Dockerfile`](api/Dockerfile) | API image; models/voices mounted at run time |
+| [`generator/main.py`](generator/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes (`POST /v1/audio/speech`, `GET /v1/audio/voices`, `GET /v1/models`) |
+| [`generator/tts_engine.py`](generator/tts_engine.py) | `KokoroTTS` — thin wrapper (24 kHz, `list_voices`, `generate_audio`) |
+| [`generator/requirements_api.txt`](generator/requirements_api.txt) | API + inference dependencies |
+| [`generator/models/`](generator/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
+| [`generator/Dockerfile`](generator/Dockerfile) | API image; models/voices mounted at run time |
 | [`docker-compose.yml`](docker-compose.yml) | `api` + `ui` services (Traefik labels for Coolify) |
 | [`docker-compose.local.yml`](docker-compose.local.yml) | Local override: host ports, no Traefik labels, no `ROOT_PATH` |
 | [`ui/`](ui/) | Nuxt 4 web UI (Nuxt UI v4, nuxt-auth-utils) |
@@ -31,7 +31,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`voice_prep_module/merge_voice_bundles.py`](voice_prep_module/merge_voice_bundles.py) | Merge official + custom npz bundles |
 | [`voice_prep_module/requirements_prep.txt`](voice_prep_module/requirements_prep.txt) | Offline prep dependencies (torch, numpy, soundfile) |
 | [`voice_prep_module/raw_audios/`](voice_prep_module/raw_audios/) | Reference WAV clips (e.g. `nemo_0_FR.wav`) |
-| [`api/voices/`](api/voices/) | Generated bundles + manifests (gitignored except `.gitkeep`) |
+| [`generator/voices/`](generator/voices/) | Generated bundles + manifests (gitignored except `.gitkeep`) |
 | [`doc/voice-preparation.md`](doc/voice-preparation.md) | Full voice prep guide (concepts, workflow, script ref, FAQ) |
 | [`flake.nix`](flake.nix) / [`flake.lock`](flake.lock) | Dev shell (Python 3.11, `uv`, audio libs) |
 
@@ -49,7 +49,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `ADMIN_PASSWORD` | UI login password |
 | `API_PORT` | Host port for the API container (default `8000`; ignored by Coolify) |
 | `UI_PORT` | Host port for the UI container (default `3000`; ignored by Coolify) |
-| `ROOT_PATH` | FastAPI root path prefix for reverse-proxy deployments (default empty; set to `/api` in docker-compose) |
+| `ROOT_PATH` | FastAPI root path prefix for reverse-proxy deployments (default empty; set to `/tts-server` in docker-compose) |
 
 ## API endpoints
 
@@ -76,9 +76,9 @@ The `language` field on `/v1/audio/speech` is a non-standard extension: when omi
 From repo root after `nix develop` and `uv venv`:
 
 ```bash
-uv pip install --python .venv/bin/python -r api/requirements_api.txt
+uv pip install --python .venv/bin/python -r generator/requirements_api.txt
 source .venv/bin/activate
-cd api && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 (`UV_PYTHON` is set in the Nix shell; without `--python .venv/bin/python`, `uv pip` may try to write into the read-only Nix interpreter.)
@@ -90,7 +90,7 @@ uv pip install --python .venv/bin/python -r voice_prep_module/requirements_prep.
 python voice_prep_module/extract_voice.py
 ```
 
-Kokoro ONNX does **not** build new style vectors from raw `.wav` here; the script packs Hugging Face–style `*.pt` clips and inventories WAV metadata. Set `KOKORO_VOICES_BIN_PATH` to `api/voices/custom_voices.bin` when using a custom bundle.
+Kokoro ONNX does **not** build new style vectors from raw `.wav` here; the script packs Hugging Face–style `*.pt` clips and inventories WAV metadata. Set `KOKORO_VOICES_BIN_PATH` to `generator/voices/custom_voices.bin` when using a custom bundle.
 
 **Experimental WAV → embedding** (random placeholder — NOT a real extraction):
 
@@ -102,14 +102,14 @@ python voice_prep_module/extract_voice_from_wav.py --wav voice_prep_module/raw_a
 
 ```bash
 python voice_prep_module/merge_voice_bundles.py \
-  --base api/models/voices-v1.0.bin \
-  --overlay api/voices/custom_voices.bin \
-  --output api/voices/merged_voices.bin
+  --base generator/models/voices-v1.0.bin \
+  --overlay generator/voices/custom_voices.bin \
+  --output generator/voices/merged_voices.bin
 ```
 
 **Docker (local):** `docker compose -f docker-compose.yml -f docker-compose.local.yml up --build` from repo root; probe `GET /health`.
 
-**Docker (Coolify):** `docker compose up` — Traefik routes `/api` to the API and `/` to the UI.
+**Docker (Coolify):** `docker compose up` — Traefik routes `/tts-server` to the API and `/` to the UI.
 
 After changing flake **inputs**, run `nix flake lock` and commit **`flake.lock`** with **`flake.nix`**.
 
@@ -123,4 +123,4 @@ See [`.cursor/rules/nix-development.mdc`](.cursor/rules/nix-development.mdc): pr
 
 ## Out of scope unless requested
 
-- Do not commit large `.onnx` / `.bin` assets; `.gitignore` covers `api/models/*.onnx`, `api/models/*.bin`, and `api/voices/*.bin`.
+- Do not commit large `.onnx` / `.bin` assets; `.gitignore` covers `generator/models/*.onnx`, `generator/models/*.bin`, and `generator/voices/*.bin`.

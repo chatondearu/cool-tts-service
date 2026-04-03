@@ -12,10 +12,10 @@ build/
 .env
 
 # Local model artifacts (large); keep empty dirs via .gitkeep
-api/models/*.onnx
-api/models/*.bin
-api/voices/*.bin
+generator/models/*.onnx
+generator/models/*.bin
+generator/voices/*.bin
 
 # Generated metadata from merge / prep scripts
 *.merge-meta.json
-api/voices/voice_prep_manifest.json
+generator/voices/voice_prep_manifest.json
