@@ -7,12 +7,12 @@ services:
       - ./generator/models:/app/models:ro
       - ./generator/voices:/app/voices:ro
     environment:
-      SERVICE_URL_API_8000=/tts-server
-      PYTHONUNBUFFERED: "1"
-      API_TOKEN: "${SERVICE_BASE64_64_API_TOKEN}"
-      ROOT_PATH: "/tts-server"
+      - SERVICE_URL_API_8000=/tts-server
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - API_TOKEN=${SERVICE_BASE64_64_API_TOKEN}
+      - ROOT_PATH=/tts-server
       # Uncomment to use a merged bundle (placed in the voices volume):
-      # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
+      # - KOKORO_VOICES_BIN_PATH=${KOKORO_VOICES_BIN_PATH:-/app/voices/merged_voices.bin}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
@@ -26,13 +26,13 @@ services:
       context: ./ui
       dockerfile: Dockerfile
     environment:
-      SERVICE_URL_UI_3000
-      DOMAIN_NAME: "${SERVICE_FQDN_UI}"
-      NUXT_SESSION_PASSWORD: "${SERVICE_PASSWORD_SESSION}"
-      NUXT_API_BASE_URL: "http://api:8000"
-      NUXT_API_TOKEN: "${SERVICE_BASE64_64_API_TOKEN}"
-      NUXT_ADMIN_USER: "${SERVICE_USER_ADMIN}"
-      NUXT_ADMIN_PASSWORD: "${SERVICE_PASSWORD_ADMIN}"
+      - SERVICE_URL_UI_3000
+      - DOMAIN_NAME=${SERVICE_FQDN_UI}
+      - NUXT_SESSION_PASSWORD=${SERVICE_PASSWORD_SESSION}
+      - NUXT_API_BASE_URL=http://api:8000
+      - NUXT_API_TOKEN=${SERVICE_BASE64_64_API_TOKEN}
+      - NUXT_ADMIN_USER=${SERVICE_USER_ADMIN}
+      - NUXT_ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
     depends_on:
       api:
         condition: service_healthy
