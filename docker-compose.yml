@@ -27,6 +27,7 @@ services:
       dockerfile: Dockerfile
     environment:
       SERVICE_URL_UI_3000
+      DOMAIN_NAME: "${SERVICE_FQDN_UI}"
       NUXT_SESSION_PASSWORD: "${SERVICE_PASSWORD_SESSION}"
       NUXT_API_BASE_URL: "http://api:8000"
       NUXT_API_TOKEN: "${SERVICE_BASE64_64_API_TOKEN}"
