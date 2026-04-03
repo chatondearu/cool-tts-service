@@ -3,6 +3,7 @@
 See the root [`README.md`](../README.md) for project goals and layout.
 
 - **[`doc/development.md`](development.md)** — local development **with Nix** or **without Nix**, UI `.env`, and **smoke tests**.
+- **[`doc/home-assistant.md`](home-assistant.md)** — Home Assistant **HACS** `openai_tts` setup (URL, API token, first profile, `response_format`).
 - **This document** — API reference, NixOS `LD_LIBRARY_PATH` notes, Docker / Coolify / Traefik.
 
 ## API behavior (models and startup)
@@ -47,7 +48,7 @@ When `language` is omitted from `/v1/audio/speech`, it is inferred from the voic
 
 **Open WebUI** — set the custom TTS base URL to `http://<host>:9000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
-**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:9000/v1/audio/speech` (local) or `https://<domain>/tts-server/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
+**Home Assistant** (`openai_tts` HACS integration) — use the full speech URL (`…/v1/audio/speech`), optional Bearer token when `API_TOKEN` is set, model `kokoro-v1.0`, and **Extra payload** `{"response_format":"wav"}` (the integration defaults to `mp3`, which this API rejects). Step-by-step: [`doc/home-assistant.md`](home-assistant.md).
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
