@@ -7,8 +7,9 @@
 3. **[`doc/development.md`](doc/development.md)** — local dev **with Nix** vs **without Nix**, UI `.env`, smoke tests.
 4. **[`doc/deployment.md`](doc/deployment.md)** — API summary, Docker / Coolify, `LD_LIBRARY_PATH` on NixOS/Linux.
 5. **[`doc/home-assistant.md`](doc/home-assistant.md)** — Home Assistant HACS `openai_tts` (URL, token, profile, `response_format: wav`).
-6. **[`doc/voice-preparation.md`](doc/voice-preparation.md)** — full voice prep guide (concepts, workflow, script reference, FAQ).
-7. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
+6. **[`doc/litellm.md`](doc/litellm.md)** — LiteLLM proxy integration (`api_base`, `openai/kokoro-v1.0`, YAML + UI).
+7. **[`doc/voice-preparation.md`](doc/voice-preparation.md)** — full voice prep guide (concepts, workflow, script reference, FAQ).
+8. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
 
 Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** dependency and source paths from the tree or these docs.
 

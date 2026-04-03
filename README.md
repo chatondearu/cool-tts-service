@@ -37,6 +37,7 @@ cool-tts-service/
 │   ├── development.md         # Local dev: Nix vs without Nix, UI env, smoke tests
 │   ├── deployment.md          # API summary, Docker / Coolify / NixOS library notes
 │   ├── home-assistant.md      # HACS OpenAI TTS + Assist setup
+│   ├── litellm.md             # LiteLLM proxy (YAML + UI) for OpenAI TTS
 │   └── voice-preparation.md   # Full voice prep guide (concepts, workflow, FAQ)
 ├── scripts/
 │   └── dev-local.sh           # Run API + Nuxt together (outside Docker)

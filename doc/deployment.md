@@ -4,6 +4,7 @@ See the root [`README.md`](../README.md) for project goals and layout.
 
 - **[`doc/development.md`](development.md)** — local development **with Nix** or **without Nix**, UI `.env`, and **smoke tests**.
 - **[`doc/home-assistant.md`](home-assistant.md)** — Home Assistant **HACS** `openai_tts` setup (URL, API token, first profile, `response_format`).
+- **[`doc/litellm.md`](litellm.md)** — **LiteLLM** proxy: YAML + Admin UI, `api_base`, `openai/kokoro-v1.0`, `response_format: wav`.
 - **This document** — API reference, NixOS `LD_LIBRARY_PATH` notes, Docker / Coolify / Traefik.
 
 ## API behavior (models and startup)
@@ -49,6 +50,8 @@ When `language` is omitted from `/v1/audio/speech`, it is inferred from the voic
 **Open WebUI** — set the custom TTS base URL to `http://<host>:9000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
 **Home Assistant** (`openai_tts` HACS integration) — use the full speech URL (`…/v1/audio/speech`), optional Bearer token when `API_TOKEN` is set, model `kokoro-v1.0`, and **Extra payload** `{"response_format":"wav"}` (the integration defaults to `mp3`, which this API rejects). Step-by-step: [`doc/home-assistant.md`](home-assistant.md).
+
+**LiteLLM** — route TTS with `litellm_params.model: openai/kokoro-v1.0` and `api_base: http://<host>:9000/v1` (or `https://<domain>/tts-server/v1` behind Traefik). Callers through the proxy must send **`response_format: wav`**. Details: [`doc/litellm.md`](litellm.md).
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
@@ -149,6 +152,7 @@ External tools that talk to the API use the `/tts-server` prefix:
 
 - **Open WebUI** — TTS base URL: `https://tts.example.com/tts-server/v1`
 - **Home Assistant** (`openai_tts`) — endpoint: `https://tts.example.com/tts-server/v1/audio/speech`
+- **LiteLLM** — `api_base` for the OpenAI client: `https://tts.example.com/tts-server/v1` (see [`litellm.md`](litellm.md))
 - **Swagger docs** — `https://tts.example.com/tts-server/docs`
 
 The `ROOT_PATH` env var (set to `/tts-server` in docker-compose) tells FastAPI it is served behind a prefix so Swagger UI and OpenAPI schema URLs resolve correctly.
