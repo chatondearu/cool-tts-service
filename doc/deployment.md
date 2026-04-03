@@ -68,9 +68,9 @@ These routes let external tools that speak the OpenAI TTS protocol use the same 
 
 When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
 
-**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` and optionally provide the `API_TOKEN` as API key.
+**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` (local) or `https://<domain>/api/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
-**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech`; leave the API key empty if `API_TOKEN` is not set.
+**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech` (local) or `https://<domain>/api/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
@@ -123,6 +123,19 @@ For a **merged** voice bundle, build it with `voice_prep_module/merge_voice_bund
 
 To secure the FastAPI with a Bearer token, set **`API_TOKEN`** in `.env`; the UI will inject it automatically when proxying requests.
 
-### Coolify / managed reverse proxy
+### Coolify / single-domain deployment
 
-When deploying behind **Coolify** (or any platform that routes via Traefik / Caddy on the Docker network), the `ports:` section is **not used** — the reverse proxy reaches containers on their internal ports (`EXPOSE 8000` / `EXPOSE 3000`). The `API_PORT` / `UI_PORT` variables only matter for local development; Coolify auto-detects internal ports and manages routing.
+The compose file includes **Traefik labels** for single-domain routing behind Coolify (or any Traefik-managed platform):
+
+- **UI** serves at the domain root (`/`)
+- **API** serves under `/api` (Traefik strips the prefix before forwarding to the container)
+
+Coolify detects the labels automatically. In the Coolify UI, assign one domain to the stack (e.g. `https://tts.example.com`). The `ports:` section is **not used** by Traefik — it routes via the internal Docker network. `API_PORT` / `UI_PORT` only matter for local development.
+
+External tools that talk to the API use the `/api` prefix:
+
+- **Open WebUI** — TTS base URL: `https://tts.example.com/api/v1`
+- **Home Assistant** (`openai_tts`) — endpoint: `https://tts.example.com/api/v1/audio/speech`
+- **Swagger docs** — `https://tts.example.com/api/docs`
+
+The `ROOT_PATH` env var (set to `/api` in docker-compose) tells FastAPI it is served behind a prefix so Swagger UI and OpenAPI schema URLs resolve correctly.

@@ -5,12 +5,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${API_PORT:-8000}:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entryPoints=http"
+      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.api.middlewares=api-strip"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
     volumes:
       - ./api/models:/app/models:ro
       - ./api/voices:/app/voices:ro
     environment:
       PYTHONUNBUFFERED: "1"
       API_TOKEN: "${API_TOKEN:-}"
+      ROOT_PATH: "/api"
       # Uncomment to use a merged bundle (placed in the voices volume):
       # KOKORO_VOICES_BIN_PATH: /app/voices/merged_voices.bin
     restart: unless-stopped
@@ -27,6 +35,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${UI_PORT:-3000}:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ui.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.ui.entryPoints=http"
+      - "traefik.http.routers.ui.priority=1"
+      - "traefik.http.services.ui.loadbalancer.server.port=3000"
     environment:
       NUXT_SESSION_PASSWORD: "${NUXT_SESSION_PASSWORD:?Set NUXT_SESSION_PASSWORD (min 32 chars)}"
       NUXT_API_BASE_URL: "http://api:8000"

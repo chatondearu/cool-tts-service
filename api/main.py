@@ -28,6 +28,7 @@ logger = logging.getLogger("cool-tts")
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _API_TOKEN = os.environ.get("API_TOKEN", "")
+_ROOT_PATH = os.environ.get("ROOT_PATH", "")
 
 _MODEL_ID = "kokoro-v1.0"
 
@@ -99,7 +100,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Cool TTS Service", lifespan=lifespan)
+app = FastAPI(title="Cool TTS Service", lifespan=lifespan, root_path=_ROOT_PATH)
 
 if _API_TOKEN:
     app.add_middleware(_BearerTokenMiddleware)

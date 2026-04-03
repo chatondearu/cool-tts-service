@@ -165,7 +165,11 @@ docker compose up
 - API health: `GET http://localhost:8000/health`
 - API docs: <http://localhost:8000/docs>
 
-Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). On **Coolify** or any Traefik-managed platform, these are ignored — the reverse proxy routes to internal container ports automatically.
+Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000).
+
+### Coolify / single-domain deployment
+
+The compose file ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the API under `/api`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
 
 To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
 

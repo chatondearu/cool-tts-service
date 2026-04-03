@@ -48,6 +48,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `ADMIN_PASSWORD` | UI login password |
 | `API_PORT` | Host port for the API container (default `8000`; ignored by Coolify) |
 | `UI_PORT` | Host port for the UI container (default `3000`; ignored by Coolify) |
+| `ROOT_PATH` | FastAPI root path prefix for reverse-proxy deployments (default empty; set to `/api` in docker-compose) |
 
 ## API endpoints
 
