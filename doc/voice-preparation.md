@@ -165,7 +165,7 @@ Set the environment variable so the API loads your merged file instead of the de
 ```bash
 # Local dev
 export KOKORO_VOICES_BIN_PATH=generator/voices/merged_voices.bin
-cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 9000
 ```
 
 For **Docker**, uncomment the line in `docker-compose.yml`:
@@ -186,13 +186,13 @@ docker compose up -d
 List available voices to confirm your new entries appear:
 
 ```bash
-curl -sS http://127.0.0.1:8000/voices | python -m json.tool
+curl -sS http://127.0.0.1:9000/voices | python -m json.tool
 ```
 
 Generate a test clip:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8000/generate \
+curl -sS -X POST http://127.0.0.1:9000/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"Bonjour, ceci est un test.","language":"fr-fr","voice_id":"ff_siwis","speed":1.0}' \
   -o test_output.wav

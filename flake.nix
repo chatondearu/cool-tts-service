@@ -54,7 +54,7 @@
                 echo "  uv venv:  uv venv --python ''${UV_PYTHON:-python3} .venv && source .venv/bin/activate"
                 echo "  deps:     uv pip install --python .venv/bin/python -r generator/requirements_api.txt"
                 echo "  optional: uv pip install -r voice_prep_module/requirements_prep.txt"
-                echo "  API:      cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+                echo "  API:      cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 9000"
                 echo "  UI:       cd ui && npm install && npm run dev"
                 echo "  both:     ./scripts/dev-local.sh   # API + UI (after .venv + ui/node_modules)"
                 echo "  dev docs: doc/development.md (without Nix: same API/UI steps with host Python 3.10+ + Node 22)"

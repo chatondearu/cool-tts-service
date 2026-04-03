@@ -8,7 +8,7 @@
 #   - ui/.env — copy from ui/.env.example; set NUXT_SESSION_PASSWORD (≥32 chars),
 #     NUXT_ADMIN_PASSWORD, etc.
 #   - NUXT_API_BASE_URL in ui/.env must match this API (default in .env.example:
-#     http://localhost:8000). If you change API_PORT, set e.g.
+#     http://localhost:9000). If you change API_PORT, set e.g.
 #     NUXT_API_BASE_URL=http://127.0.0.1:<port>
 #
 # Usage: from repo root
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-API_PORT="${API_PORT:-8000}"
+API_PORT="${API_PORT:-9000}"
 UI_PORT="${UI_PORT:-3000}"
 
 if [[ ! -d "$ROOT/ui/node_modules" ]]; then

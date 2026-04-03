@@ -76,8 +76,8 @@ With API dependencies installed and (optionally) the server running:
 # App imports (no inference)
 cd generator && python -c "from main import app; print(app.title)"
 
-# With uvicorn on :8000 — health JSON should include tts_ready
-curl -sS http://127.0.0.1:8000/health
+# With uvicorn on :9000 — health JSON should include tts_ready
+curl -sS http://127.0.0.1:9000/health
 ```
 
 More checks (`/voices`, sample `/generate`) are listed in [`doc/development.md`](doc/development.md). There is no bundled **`pytest`** suite yet.
@@ -87,7 +87,7 @@ More checks (`/voices`, sample `/generate`) are listed in [`doc/development.md`]
 **Generate speech:**
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8000/generate \
+curl -sS -X POST http://127.0.0.1:9000/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"Bonjour le monde.","language":"fr-fr","voice_id":"af_sarah","speed":1.0}' \
   -o speech.wav
@@ -96,10 +96,10 @@ curl -sS -X POST http://127.0.0.1:8000/generate \
 **List voices:**
 
 ```bash
-curl -sS http://127.0.0.1:8000/voices
+curl -sS http://127.0.0.1:9000/voices
 ```
 
-Interactive docs: <http://127.0.0.1:8000/docs>. JSON body fields for `/generate`: `text`, `language`, `voice_id`, `speed`. See Kokoro [VOICES.md](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) for voice and language hints.
+Interactive docs: <http://127.0.0.1:9000/docs>. JSON body fields for `/generate`: `text`, `language`, `voice_id`, `speed`. See Kokoro [VOICES.md](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) for voice and language hints.
 
 ## Voice preparation
 
@@ -155,10 +155,10 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
 - UI: <http://localhost:3000>
-- API health: `GET http://localhost:8000/health`
-- API docs: <http://localhost:8000/docs>
+- API health: `GET http://localhost:9000/health`
+- API docs: <http://localhost:9000/docs>
 
-Host ports: `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and sets `ROOT_PATH` to empty.
+Host ports: `API_PORT` and `UI_PORT` in `.env` (defaults: 9000 / 3000). The local override disables Traefik labels and sets `ROOT_PATH` to empty.
 
 ### Coolify / single-domain deployment
 

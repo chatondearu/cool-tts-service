@@ -48,10 +48,10 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | `API_TOKEN` | Optional Bearer token to secure the FastAPI (shared with UI) |
 | `UV_PYTHON` | Set by Nix shell so `uv` uses the Nix interpreter (optional elsewhere) |
 | `NUXT_SESSION_PASSWORD` | Encryption key for UI session cookies (min 32 chars) |
-| `API_BASE_URL` | FastAPI URL for the Nuxt server (default `http://localhost:8000`) |
+| `API_BASE_URL` | FastAPI URL for the Nuxt server (default `http://localhost:9000`) |
 | `ADMIN_USER` | UI login username (default `admin`) |
 | `ADMIN_PASSWORD` | UI login password |
-| `API_PORT` | Host port for the API container (default `8000`; ignored by Coolify) |
+| `API_PORT` | Host port for the API container (default `9000`; ignored by Coolify) |
 | `UI_PORT` | Host port for the UI container (default `3000`; ignored by Coolify) |
 | `ROOT_PATH` | FastAPI root path prefix for reverse-proxy deployments (default empty; set to `/tts-server` in docker-compose) |
 
@@ -85,7 +85,7 @@ From repo root after `nix develop` and `uv venv`:
 ```bash
 uv pip install --python .venv/bin/python -r generator/requirements_api.txt
 source .venv/bin/activate
-cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 9000
 ```
 
 **API + UI (local stack, one terminal):** from repo root, `./scripts/dev-local.sh` (requires `.venv` with `uvicorn`, `ui/node_modules`; see [`doc/development.md`](doc/development.md#api--ui-together-one-terminal)).

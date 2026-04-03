@@ -45,9 +45,9 @@ These routes let external tools that speak the OpenAI TTS protocol use the same 
 
 When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
 
-**Open WebUI** — set the custom TTS base URL to `http://<host>:8000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
+**Open WebUI** — set the custom TTS base URL to `http://<host>:9000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
-**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:8000/v1/audio/speech` (local) or `https://<domain>/tts-server/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
+**Home Assistant** (`openai_tts` HACS integration) — set the endpoint URL to `http://<host>:9000/v1/audio/speech` (local) or `https://<domain>/tts-server/v1/audio/speech` (Coolify); leave the API key empty if `API_TOKEN` is not set.
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 
@@ -95,7 +95,7 @@ UI_PORT=3001
 
 Two services start:
 
-- `**api**` (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories `**generator/models/**` and `**generator/voices/**` are mounted **read-write** so `KOKORO_AUTO_DOWNLOAD` and `POST /admin/models/upload` can persist files.
+- `**api**` (host port `API_PORT`, default 9000) — FastAPI TTS backend. Host directories `**generator/models/**` and `**generator/voices/**` are mounted **read-write** so `KOKORO_AUTO_DOWNLOAD` and `POST /admin/models/upload` can persist files.
 - `**ui**` (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
 
 For Coolify, use the main compose file directly (`docker compose up`); Traefik handles routing — see below.

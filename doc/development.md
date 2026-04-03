@@ -45,7 +45,7 @@ If `nix develop` fails with **`CXXABI_1.3.15`** before the shell starts, clear a
 
 ```bash
 cd generator
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 9000
 ```
 
 ### Run the UI
@@ -80,7 +80,7 @@ Run the API:
 
 ```bash
 cd generator
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 9000
 ```
 
 Run the UI:
@@ -104,7 +104,7 @@ From the **repository root**, after installing API deps into `.venv` and running
 ./scripts/dev-local.sh
 ```
 
-This starts **uvicorn** in the background (`generator/`, default port **8000**) and **Nuxt** in the foreground (`ui/`, default port **3000**). **Ctrl+C** stops the UI and the script tears down the API process.
+This starts **uvicorn** in the background (`generator/`, default port **9000**) and **Nuxt** in the foreground (`ui/`, default port **3000**). **Ctrl+C** stops the UI and the script tears down the API process.
 
 Custom ports:
 
@@ -140,7 +140,7 @@ Copy `ui/.env.example` → `ui/.env` and set at least:
 | `NUXT_SESSION_PASSWORD` | Session cookie encryption (min 32 characters) |
 | `ADMIN_PASSWORD` | Login password for the UI |
 
-Optional: `NUXT_API_BASE_URL` (default `http://localhost:8000` in `ui/.env.example`), `NUXT_API_TOKEN` if the API uses Bearer auth, `NUXT_ADMIN_USER` (default `admin`).
+Optional: `NUXT_API_BASE_URL` (default `http://localhost:9000` in `ui/.env.example`), `NUXT_API_TOKEN` if the API uses Bearer auth, `NUXT_ADMIN_USER` (default `admin`).
 
 ---
 
@@ -159,7 +159,7 @@ cd generator && python -c "from main import app; print(app.title)"
 ### 2. Health endpoint (API running)
 
 ```bash
-curl -sS http://127.0.0.1:8000/health
+curl -sS http://127.0.0.1:9000/health
 ```
 
 Expect JSON with `status` and `tts_ready` (and `tts_error` if models are missing).
@@ -167,7 +167,7 @@ Expect JSON with `status` and `tts_ready` (and `tts_error` if models are missing
 ### 3. List voices
 
 ```bash
-curl -sS http://127.0.0.1:8000/voices
+curl -sS http://127.0.0.1:9000/voices
 ```
 
 If `API_TOKEN` is set, add `-H "Authorization: Bearer <token>"`.
@@ -175,7 +175,7 @@ If `API_TOKEN` is set, add `-H "Authorization: Bearer <token>"`.
 ### 4. Synthesis (needs loaded models and a valid `voice_id`)
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8000/generate \
+curl -sS -X POST http://127.0.0.1:9000/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello","language":"en-us","voice_id":"af_sarah","speed":1.0}' \
   -o /tmp/speech.wav
