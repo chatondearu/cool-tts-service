@@ -1,57 +1,15 @@
-# Deployment and local development
+# Deployment
 
-See the root `[README.md](../README.md)` for project goals and layout; this file focuses on how to run and ship the service.
+See the root [`README.md`](../README.md) for project goals and layout.
 
-## Nix development shell (workstation)
+- **[`doc/development.md`](development.md)** — local development **with Nix** or **without Nix**, UI `.env`, and **smoke tests**.
+- **This document** — API reference, NixOS `LD_LIBRARY_PATH` notes, Docker / Coolify / Traefik.
 
-From the repository root:
+## API behavior (models and startup)
 
-```bash
-nix develop
-```
+Starting **uvicorn** attempts to load Kokoro. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis returns **503** with a `detail`, while `GET /health` stays **200** and includes `tts_ready` (and `tts_error` when the engine is not loaded).
 
-Or with **direnv** (after `direnv allow` once):
-
-```bash
-cd /path/to/cool-tts-service
-# .envrc loads the flake automatically
-```
-
-The dev shell pins **Python 3.11** via Nix (`python311`); the app targets **3.10+**, so you can point `uv` at another interpreter if needed.
-
-Python dependencies are **not** installed from Nixpkgs for the app; use `**uv`** into a project virtualenv. The shell sets `**UV_PYTHON**` to the Nix `python3` so `uv` does not pick a host interpreter by mistake.
-
-```bash
-uv venv --python "${UV_PYTHON:-python3}" .venv
-uv pip install --python .venv/bin/python -r generator/requirements_api.txt
-source .venv/bin/activate
-```
-
-### Smoke-test without running inference
-
-From the repo root (with deps installed):
-
-```bash
-cd generator && python -c "from main import app; print(app.title)"
-```
-
-Starting `**uvicorn**` attempts to load Kokoro on startup. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis routes return **503** with an explanatory `detail`, while `GET /health` stays **200** and includes `tts_ready` (and `tts_error` when the engine is not loaded).
-
-Place Kokoro assets under `generator/models/` (e.g. `kokoro-v1.0.onnx`, `voices-v1.0.bin`) or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`.
-
-Optional first-boot download from the official [kokoro-onnx release](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0):
-
-- Set `**KOKORO_AUTO_DOWNLOAD=1`** (values `1`, `true`, `yes`, `on`). Parent directories of the target paths must be **writable**.
-- Set `**KOKORO_ONNX_VARIANT**` to `f32` (default, `kokoro-v1.0.onnx`), `int8` (`kokoro-v1.0.int8.onnx`), or `fp16` (`kokoro-v1.0.fp16.onnx`) to control which ONNX is fetched when auto-download runs.
-
-Docker Compose passes `KOKORO_AUTO_DOWNLOAD` and `KOKORO_ONNX_VARIANT` from the host `.env` when set.
-
-Run the API:
-
-```bash
-cd generator
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`. Optional first-boot download: `KOKORO_AUTO_DOWNLOAD=1` and `KOKORO_ONNX_VARIANT` (`f32`, `int8`, `fp16`) — see [`development.md`](development.md). Docker Compose can pass these from the host `.env`.
 
 ### API endpoints
 
@@ -99,17 +57,7 @@ If `**nix develop**` or `**nix**` fails with `CXXABI_1.3.15` **before** the shel
 
 ## Web UI (local)
 
-The Nuxt 4 UI lives in `ui/`. The flake dev shell (`nix develop`) includes **Node.js 22** and **npm**, so you can run the UI without a nested `nix shell`:
-
-```bash
-cd ui
-npm install
-npm run dev
-```
-
-If you are not using the flake shell, use e.g. `nix shell nixpkgs#nodejs_22` once, then the same `npm` commands.
-
-The UI runs on `http://localhost:3000`. Set `API_BASE_URL`, `ADMIN_USER`, and `ADMIN_PASSWORD` in `ui/.env` (copy from `ui/.env.example`).
+Run the Nuxt app with Node 22 + npm; full **Nix vs non-Nix** steps and `ui/.env` are in [`development.md`](development.md).
 
 ## Production (Docker)
 

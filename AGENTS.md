@@ -4,9 +4,10 @@
 
 1. **Root [`README.md`](README.md)** — goals, layout, quick start, API example.
 2. **This file** — paths, env vars, and workflow expectations.
-3. **[`doc/deployment.md`](doc/deployment.md)** — Nix shell quirks, `LD_LIBRARY_PATH`, production vs local.
-4. **[`doc/voice-preparation.md`](doc/voice-preparation.md)** — full voice prep guide (concepts, workflow, script reference, FAQ).
-5. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
+3. **[`doc/development.md`](doc/development.md)** — local dev **with Nix** vs **without Nix**, UI `.env`, smoke tests.
+4. **[`doc/deployment.md`](doc/deployment.md)** — API summary, Docker / Coolify, `LD_LIBRARY_PATH` on NixOS/Linux.
+5. **[`doc/voice-preparation.md`](doc/voice-preparation.md)** — full voice prep guide (concepts, workflow, script reference, FAQ).
+6. **[`.cursor/rules/`](.cursor/rules/)** — project rules (Nix discovery, Conventional Commits, doc sync).
 
 Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** dependency and source paths from the tree or these docs.
 

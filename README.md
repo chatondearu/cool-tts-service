@@ -34,7 +34,8 @@ cool-tts-service/
 │   ├── requirements_prep.txt
 │   └── raw_audios/            # Reference WAV clips
 ├── doc/
-│   ├── deployment.md          # Nix + Docker + production notes
+│   ├── development.md         # Local dev: Nix vs without Nix, UI env, smoke tests
+│   ├── deployment.md          # API summary, Docker / Coolify / NixOS library notes
 │   └── voice-preparation.md   # Full voice prep guide (concepts, workflow, FAQ)
 ├── docker-compose.yml
 ├── flake.nix / flake.lock / .envrc
@@ -42,45 +43,42 @@ cool-tts-service/
 └── README.md
 ```
 
-## Quick start (local)
+## Local development (two setups)
 
-### 1. Toolchain
+Use **either** the Nix flake **or** a plain Python + Node install. Step-by-step commands, `ui/.env`, and troubleshooting live in **[`doc/development.md`](doc/development.md)**.
 
-Use **Nix** + **uv** (see [`doc/deployment.md`](doc/deployment.md) for details):
+### With Nix
 
-```bash
-nix develop
-uv venv --python "${UV_PYTHON:-python3}" .venv
-uv pip install --python .venv/bin/python -r generator/requirements_api.txt
-source .venv/bin/activate
-```
+- Enter **`nix develop`** (or use **direnv** with [`.envrc`](.envrc)).
+- **Python 3.11**, **`uv`**, **Node.js 22**, and **npm** are on `PATH`.
+- Create `.venv`, install `generator/requirements_api.txt`, run API and UI as in [`doc/development.md`](doc/development.md).
 
-Without Nix, use Python **3.10+** and install `generator/requirements_api.txt` into a virtualenv.
+### Without Nix
 
-### 2. Model files
+- Install **Python 3.10+** and **Node.js 22** (with npm) yourself.
+- Create a venv, install API deps with **`uv`** or **`pip`**, then same API/UI commands as in [`doc/development.md`](doc/development.md).
 
-Download from [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx/releases) (e.g. `model-files-v1.0`):
+### Model files (both setups)
 
-- `kokoro-v1.0.onnx`
-- `voices-v1.0.bin`
+Download from [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx/releases) (tag `model-files-v1.0`), e.g. `kokoro-v1.0.onnx` and `voices-v1.0.bin`, into **`generator/models/`**, or set **`KOKORO_MODEL_PATH`** / **`KOKORO_VOICES_BIN_PATH`**.
 
-Place them under `generator/models/` **or** set env vars:
+Without models the API **still starts**; synthesis returns **503** until files are present (optional **`KOKORO_AUTO_DOWNLOAD=1`** — see [`doc/development.md`](doc/development.md) and [`doc/deployment.md`](doc/deployment.md)).
 
-- `KOKORO_MODEL_PATH`
-- `KOKORO_VOICES_BIN_PATH`
+### Smoke tests (quick checks)
 
-Without these files the API still **starts**; synthesis returns **503** until models are present (or use `KOKORO_AUTO_DOWNLOAD=1` with a writable `generator/models` directory — see [`doc/deployment.md`](doc/deployment.md)).
-
-### 3. Run the API
+With API dependencies installed and (optionally) the server running:
 
 ```bash
-cd generator
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# App imports (no inference)
+cd generator && python -c "from main import app; print(app.title)"
+
+# With uvicorn on :8000 — health JSON should include tts_ready
+curl -sS http://127.0.0.1:8000/health
 ```
 
-- Interactive docs: <http://127.0.0.1:8000/docs>
+More checks (`/voices`, sample `/generate`) are listed in [`doc/development.md`](doc/development.md). There is no bundled **`pytest`** suite yet.
 
-### Example requests
+### Example API usage
 
 **Generate speech:**
 
@@ -91,24 +89,24 @@ curl -sS -X POST http://127.0.0.1:8000/generate \
   -o speech.wav
 ```
 
-**List available voices:**
+**List voices:**
 
 ```bash
 curl -sS http://127.0.0.1:8000/voices
 ```
 
-JSON body fields for `/generate`: `text`, `language`, `voice_id`, `speed` (optional, default 1.0). See Kokoro [VOICES.md](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) for available voices and languages.
+Interactive docs: <http://127.0.0.1:8000/docs>. JSON body fields for `/generate`: `text`, `language`, `voice_id`, `speed`. See Kokoro [VOICES.md](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) for voice and language hints.
 
 ## Voice preparation
 
 Kokoro uses **precomputed style vectors** (not raw audio) to define a voice. The official bundle (`voices-v1.0.bin`) ships ~50 voices; you can add your own by downloading `.pt` packs from [HuggingFace](https://huggingface.co/hexgrad/Kokoro-82M/tree/main/voices) and bundling them with the scripts in `voice_prep_module/`.
 
-**Full step-by-step guide:** [`doc/voice-preparation.md`](doc/voice-preparation.md) — covers concepts, prerequisites, the complete workflow, script reference and FAQ.
+**Full step-by-step guide:** [`doc/voice-preparation.md`](doc/voice-preparation.md) — concepts, prerequisites, workflow, script reference and FAQ.
 
 Quick summary:
 
 ```bash
-# 1. Install prep dependencies
+# 1. Install prep dependencies (from activated .venv)
 uv pip install --python .venv/bin/python -r voice_prep_module/requirements_prep.txt
 
 # 2. Download .pt voice files into voice_prep_module/raw_audios/
@@ -128,30 +126,17 @@ python voice_prep_module/merge_voice_bundles.py \
 export KOKORO_VOICES_BIN_PATH=generator/voices/merged_voices.bin
 ```
 
-## Web UI
+## Web UI (summary)
 
-The Nuxt 4 UI lives in `ui/` and provides a browser interface for TTS generation.
-
-### Local development
+From [`doc/development.md`](doc/development.md): configure **`ui/.env`** (copy `ui/.env.example`), then:
 
 ```bash
 cd ui
-nix shell nixpkgs#nodejs_22 --command bash
 npm install
 npm run dev
 ```
 
-The UI runs on <http://localhost:3000> and proxies API calls to the FastAPI backend at `API_BASE_URL` (default `http://localhost:8000`).
-
-### Environment variables (UI)
-
-| Variable | Purpose |
-|----------|---------|
-| `NUXT_SESSION_PASSWORD` | Encryption key for session cookies (min 32 chars; auto-generated in dev) |
-| `API_BASE_URL` | FastAPI backend URL (default `http://localhost:8000`) |
-| `API_TOKEN` | Optional Bearer token for FastAPI authentication |
-| `ADMIN_USER` | Login username (default `admin`) |
-| `ADMIN_PASSWORD` | Login password |
+Open <http://localhost:3000>. Main variables: `NUXT_SESSION_PASSWORD` (≥32 chars), `ADMIN_PASSWORD`, optional `API_BASE_URL`, `API_TOKEN`, `ADMIN_USER`.
 
 ## Docker
 
@@ -169,13 +154,11 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 - API health: `GET http://localhost:8000/health`
 - API docs: <http://localhost:8000/docs>
 
-Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and sets `ROOT_PATH` to empty (no public path prefix on the API port).
+Host ports: `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and sets `ROOT_PATH` to empty.
 
 ### Coolify / single-domain deployment
 
-The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the TTS API under `/tts-server`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
-
-To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
+The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: UI at `/`, API under `/tts-server`. See [`doc/deployment.md`](doc/deployment.md) for Coolify env vars, Open WebUI / Home Assistant URLs, and merged voice bundles.
 
 ## Roadmap / TODO
 

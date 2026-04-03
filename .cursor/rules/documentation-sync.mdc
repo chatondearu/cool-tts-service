@@ -7,6 +7,6 @@ alwaysApply: false
 # Documentation sync
 
 - **Source of truth**: `generator/main.py`, `generator/tts_engine.py`, `generator/Dockerfile`, `ui/nuxt.config.ts`, `ui/Dockerfile`, and `docker-compose.yml`.
-- **Docs**: English only under [`doc/`](/doc); update [`doc/deployment.md`](doc/deployment.md) when behavior or contracts change.
+- **Docs**: English only under [`doc/`](/doc); update [`doc/deployment.md`](doc/deployment.md) and [`doc/development.md`](doc/development.md) when local dev workflows or contracts change.
 - **README**: Keep [`README.md`](README.md) aligned with the actual layout, env vars, and commands; avoid duplicating long deployment details already in `doc/deployment.md`.
 - When unsure, load the personal Agent Skill **technical-docs-sync** (`~/.cursor/skills/technical-docs-sync/SKILL.md`) for workflow and checklists.

@@ -1,5 +1,5 @@
 {
-  description = "cool-tts-service — flake dev shell (uv + Python 3.11, audio / PyPI wheels)";
+  description = "cool-tts-service — flake dev shell (uv + Python 3.11, Node.js 22 + npm for UI, audio / PyPI wheels)";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
@@ -25,6 +25,7 @@
             packages = with pkgs; [
               python311
               uv
+              nodejs_22
               curl
               ffmpeg-headless
               libsndfile
@@ -49,12 +50,13 @@
                 if command -v python3 >/dev/null 2>&1; then
                   export UV_PYTHON="''${UV_PYTHON:-$(command -v python3)}"
                 fi
-                echo "cool-tts-service dev shell (Python 3.11 in PATH — app supports 3.10+)"
+                echo "cool-tts-service dev shell (Python 3.11, Node.js $(node -v 2>/dev/null || echo '?') + npm — app supports Python 3.10+)"
                 echo "  uv venv:  uv venv --python ''${UV_PYTHON:-python3} .venv && source .venv/bin/activate"
                 echo "  deps:     uv pip install --python .venv/bin/python -r generator/requirements_api.txt"
                 echo "  optional: uv pip install -r voice_prep_module/requirements_prep.txt"
                 echo "  API:      cd generator && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
-                echo "  UI:       cd ui && nix shell nixpkgs#nodejs_22 --command bash -c 'npm run dev'"
+                echo "  UI:       cd ui && npm install && npm run dev"
+                echo "  dev docs: doc/development.md (without Nix: same API/UI steps with host Python 3.10+ + Node 22)"
               '';
           };
         }
