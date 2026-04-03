@@ -19,7 +19,8 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`api/requirements_api.txt`](api/requirements_api.txt) | API + inference dependencies |
 | [`api/models/`](api/models/) | `kokoro-v1.0.onnx`, `voices-v1.0.bin` (local; large files ignored by git) |
 | [`api/Dockerfile`](api/Dockerfile) | API image; models/voices mounted at run time |
-| [`docker-compose.yml`](docker-compose.yml) | `api` + `ui` services |
+| [`docker-compose.yml`](docker-compose.yml) | `api` + `ui` services (Traefik labels for Coolify) |
+| [`docker-compose.local.yml`](docker-compose.local.yml) | Local override: host ports, no Traefik labels, no `ROOT_PATH` |
 | [`ui/`](ui/) | Nuxt 4 web UI (Nuxt UI v4, nuxt-auth-utils) |
 | [`ui/nuxt.config.ts`](ui/nuxt.config.ts) | Nuxt configuration |
 | [`ui/server/api/`](ui/server/api/) | Auth routes + proxy to FastAPI |
@@ -106,7 +107,9 @@ python voice_prep_module/merge_voice_bundles.py \
   --output api/voices/merged_voices.bin
 ```
 
-**Docker:** `docker compose build && docker compose up` from repo root; probe `GET /health`.
+**Docker (local):** `docker compose -f docker-compose.yml -f docker-compose.local.yml up --build` from repo root; probe `GET /health`.
+
+**Docker (Coolify):** `docker compose up` — Traefik routes `/api` to the API and `/` to the UI.
 
 After changing flake **inputs**, run `nix flake lock` and commit **`flake.lock`** with **`flake.nix`**.
 

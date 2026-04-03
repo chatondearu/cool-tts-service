@@ -156,20 +156,21 @@ Copy `.env.example` to `.env` and set at minimum `NUXT_SESSION_PASSWORD` and `AD
 
 Place `kokoro-v1.0.onnx` and `voices-v1.0.bin` under **`api/models/`** on the host (not baked into the image). Optional voice bundles go under **`api/voices/`**.
 
+### Local (without Traefik)
+
 ```bash
-docker compose build
-docker compose up
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
 - UI: <http://localhost:3000>
 - API health: `GET http://localhost:8000/health`
 - API docs: <http://localhost:8000/docs>
 
-Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000).
+Host ports are configurable via `API_PORT` and `UI_PORT` in `.env` (defaults: 8000 / 3000). The local override disables Traefik labels and removes the `/api` prefix.
 
 ### Coolify / single-domain deployment
 
-The compose file ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the API under `/api`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
+The main `docker-compose.yml` ships with **Traefik labels** for single-domain routing: the UI is served at the root (`/`) and the API under `/api`. Assign one domain in the Coolify UI (e.g. `https://tts.example.com`); Traefik handles path-based routing automatically. See [`doc/deployment.md`](doc/deployment.md) for details on Open WebUI / Home Assistant URLs behind the proxy.
 
 To use a merged voices file, uncomment `KOKORO_VOICES_BIN_PATH` in `docker-compose.yml`. To secure the API with a Bearer token, set `API_TOKEN` in `.env`.
 

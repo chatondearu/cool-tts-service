@@ -3,8 +3,6 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    ports:
-      - "${API_PORT:-8000}:8000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
@@ -33,8 +31,6 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
-    ports:
-      - "${UI_PORT:-3000}:3000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ui.rule=PathPrefix(`/`)"

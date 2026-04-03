@@ -1,0 +1,14 @@
+# Local development override — no Traefik, direct port mapping.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up
+services:
+  api:
+    ports:
+      - "${API_PORT:-8000}:8000"
+    labels: []
+    environment:
+      ROOT_PATH: ""
+
+  ui:
+    ports:
+      - "${UI_PORT:-3000}:3000"
+    labels: []

@@ -98,11 +98,17 @@ Copy `.env.example` to `.env` at the repo root and set at minimum:
 - `NUXT_SESSION_PASSWORD` (min 32 chars)
 - `ADMIN_PASSWORD`
 
-Build and run from the repository root:
+The main `docker-compose.yml` is configured for **Coolify / Traefik** (labels, `ROOT_PATH=/api`, no host port mapping). For **local development** without a reverse proxy, layer the local override:
 
 ```bash
-docker compose build
-docker compose up
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+```
+
+This adds host port mappings and disables Traefik labels / `ROOT_PATH`. Override the host ports in `.env` if the defaults conflict:
+
+```bash
+API_PORT=9000
+UI_PORT=3001
 ```
 
 Two services start:
@@ -110,12 +116,7 @@ Two services start:
 - **`api`** (host port `API_PORT`, default 8000) — FastAPI TTS backend. Host directories **`api/models/`** and **`api/voices/`** are mounted read-only.
 - **`ui`** (host port `UI_PORT`, default 3000) — Nuxt web UI. Waits for the API healthcheck before starting.
 
-Override the host ports in `.env` if the defaults conflict with other services:
-
-```bash
-API_PORT=9000
-UI_PORT=3001
-```
+For Coolify, use the main compose file directly (`docker compose up`); Traefik handles routing — see below.
 
 Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `api/models/`.
 
