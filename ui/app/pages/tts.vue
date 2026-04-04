@@ -7,6 +7,7 @@ const { data: health } = await useFetch<{
   status: string
   tts_ready: boolean
   tts_error?: string
+  ffmpeg_available?: boolean
 }>('/api/tts/health')
 
 const languages = [
@@ -18,10 +19,17 @@ const languages = [
   { label: 'Chinese (Mandarin)', value: 'cmn' },
 ]
 
+const outputFormats = [
+  { label: 'WAV', value: 'wav' as const },
+  { label: 'MP3 (44.1 kHz)', value: 'mp3' as const },
+  { label: 'Opus (48 kHz)', value: 'opus' as const },
+]
+
 const text = ref('')
 const language = ref('fr-fr')
 const voiceId = ref('')
 const speed = ref([1.0])
+const responseFormat = ref<'wav' | 'mp3' | 'opus'>('wav')
 const generating = ref(false)
 const audioUrl = ref<string | null>(null)
 
@@ -31,6 +39,19 @@ const voices = computed(() => voicesData.value?.voices ?? [])
 
 const ttsBlocked = computed(
   () => health.value != null && health.value.tts_ready === false,
+)
+
+const encodeBlocked = computed(
+  () =>
+    (responseFormat.value === 'mp3' || responseFormat.value === 'opus')
+    && health.value != null
+    && health.value.ffmpeg_available === false,
+)
+
+const downloadExtension = computed(() => responseFormat.value)
+
+const downloadLabel = computed(
+  () => `Download ${responseFormat.value.toUpperCase()}`,
 )
 
 watch(voices, (v) => {
@@ -60,6 +81,7 @@ async function generate() {
         language: language.value,
         voice_id: voiceId.value,
         speed: speed.value[0],
+        response_format: responseFormat.value,
       },
       responseType: 'blob',
     })
@@ -84,7 +106,7 @@ function download() {
   if (!audioUrl.value) return
   const a = document.createElement('a')
   a.href = audioUrl.value
-  a.download = 'speech.wav'
+  a.download = `speech.${downloadExtension.value}`
   a.click()
 }
 
@@ -165,11 +187,28 @@ onUnmounted(() => {
             />
           </UFormField>
 
+          <UFormField label="Output format">
+            <USelectMenu
+              v-model="responseFormat"
+              :items="outputFormats"
+              value-key="value"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UAlert
+            v-if="encodeBlocked"
+            color="warning"
+            variant="subtle"
+            title="MP3 and Opus require ffmpeg"
+            description="Install ffmpeg on the API host or use Docker API image; WAV still works."
+          />
+
           <UButton
             label="Generate"
             icon="i-lucide-play"
             :loading="generating"
-            :disabled="ttsBlocked"
+            :disabled="ttsBlocked || encodeBlocked"
             block
             @click="generate"
           />
@@ -186,7 +225,7 @@ onUnmounted(() => {
               </h2>
             </div>
             <UButton
-              label="Download WAV"
+              :label="downloadLabel"
               icon="i-lucide-download"
               variant="outline"
               size="sm"

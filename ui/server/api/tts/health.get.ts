@@ -6,5 +6,6 @@ export default defineEventHandler(async (event) => {
     status: string
     tts_ready: boolean
     tts_error?: string
+    ffmpeg_available?: boolean
   }>('/health')
 })

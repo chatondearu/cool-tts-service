@@ -1,6 +1,6 @@
 # LiteLLM proxy (OpenAI-compatible TTS)
 
-[LiteLLM](https://docs.litellm.ai/) can expose an OpenAI-style **`POST /v1/audio/speech`** endpoint and forward requests to this service using the **`openai/`** provider with a custom **`api_base`**. The same contract as in [`deployment.md`](deployment.md) applies: model id **`kokoro-v1.0`**, voice ids from **`GET /v1/audio/voices`**, and **`response_format` must be `wav`** (this API does not accept `mp3` yet).
+[LiteLLM](https://docs.litellm.ai/) can expose an OpenAI-style **`POST /v1/audio/speech`** endpoint and forward requests to this service using the **`openai/`** provider with a custom **`api_base`**. The same contract as in [`deployment.md`](deployment.md) applies: model id **`kokoro-v1.0`**, voice ids from **`GET /v1/audio/voices`**, and **`response_format`** may be **`wav`**, **`mp3`**, or **`opus`** (mp3/opus require **`ffmpeg`** on the Cool TTS API host).
 
 Official LiteLLM references:
 
@@ -87,7 +87,7 @@ If the UI shows separate fields for “custom headers” or “extra params”, 
 
 ## Calling the proxy: `response_format` and `voice`
 
-Clients that use **`POST /v1/audio/speech`** through LiteLLM must send **`"response_format": "wav"`** if their default is **`mp3`** (OpenAI’s default). Otherwise Cool TTS returns **422** (`Unsupported response_format`).
+Clients that use **`POST /v1/audio/speech`** through LiteLLM should send **`response_format`** explicitly when needed: **`wav`**, **`mp3`**, or **`opus`**. Unsupported values return **422**; mp3/opus without **`ffmpeg`** on Cool TTS return **503**.
 
 Example via the LiteLLM proxy (use your proxy key if configured):
 
@@ -114,12 +114,12 @@ Optional **`language`** (e.g. `"fr-fr"`) is supported by Cool TTS when you need 
 | Issue | What to check |
 | ----- | ------------- |
 | **404** / **Not Found** on upstream | **`api_base`** must end with **`/v1`** (LiteLLM appends **`/audio/speech`**). |
-| **422** `Unsupported response_format` | Request body must include **`"response_format": "wav"`**. |
+| **422** `Unsupported response_format` | Use **`wav`**, **`mp3`**, or **`opus`** only. |
 | **422** `Unknown voice` | **`voice`** must match Cool TTS exactly (see **`GET /v1/audio/voices`**). |
 | **401** from Cool TTS | Align **`api_key`** in LiteLLM with **`API_TOKEN`** on Cool TTS. |
-| **503** from Cool TTS | Kokoro not loaded; check **`GET /health`** on Cool TTS. |
+| **503** from Cool TTS | Kokoro not loaded, or mp3/opus requested without **`ffmpeg`**; check **`GET /health`** on Cool TTS (`ffmpeg_available`). |
 
 ## See also
 
 - [`deployment.md`](deployment.md) — OpenAI routes, Traefik prefix, **`API_TOKEN`**
-- [`home-assistant.md`](home-assistant.md) — same **`wav`** requirement for another OpenAI-style client
+- [`home-assistant.md`](home-assistant.md) — OpenAI-style **`response_format`** for Home Assistant **`openai_tts`**

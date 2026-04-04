@@ -20,6 +20,7 @@ interface SynthesisLogEntry {
   duration_ms: number
   error?: string
   wav_bytes?: number
+  response_format?: string
 }
 
 interface LogsResponse {
@@ -81,6 +82,10 @@ const columns: TableColumn<SynthesisLogEntry>[] = [{
 }, {
   accessorKey: 'text_chars',
   header: 'Chars',
+}, {
+  id: 'response_format',
+  header: 'Format',
+  accessorFn: row => row.response_format ?? '—',
 }, {
   id: 'error',
   header: 'Error',

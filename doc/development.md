@@ -189,7 +189,16 @@ Synthesis requests are logged as **one JSON line per call** in the API process o
 
 ### Automated test suite
 
-There is **no** bundled `pytest` suite yet; the checks above are the supported manual smoke path. If you add tests, document the command here (e.g. `pytest`).
+From the repo root (Nix shell recommended; requires **`ffmpeg`** and **`ffprobe`** on `PATH` for transcoding tests):
+
+```bash
+uv pip install --python .venv/bin/python -r generator/requirements_api.txt -r generator/requirements_dev.txt
+pytest
+```
+
+Tests live under [`generator/tests/`](../generator/tests/); `ffmpeg` is optional for a subset (transcode checks are skipped if the binaries are missing).
+
+**MP3 / Opus locally:** the API uses **`ffmpeg`** for `response_format` `mp3` or `opus` on `POST /generate` and `POST /v1/audio/speech`. The Nix dev shell includes `ffmpeg-headless`; without Nix, install a system `ffmpeg` or use the API Docker image (includes `ffmpeg`).
 
 ---
 

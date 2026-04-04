@@ -20,6 +20,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | Area | Role |
 |------|------|
 | [`generator/main.py`](generator/main.py) | FastAPI app, lifespan, internal routes (`POST /generate`, `GET /voices`, `GET /health`) + OpenAI-compatible routes + admin routes (`/admin/models/…`, `/admin/synthesis-logs`) |
+| [`generator/audio_encode.py`](generator/audio_encode.py) | WAV → mp3 (44.1 kHz) / opus (48 kHz) via **`ffmpeg`** (stdin/stdout) |
 | [`generator/synthesis_logging.py`](generator/synthesis_logging.py) | Structured synthesis logs (JSON lines + in-memory ring buffer for the UI) |
 | [`generator/model_bootstrap.py`](generator/model_bootstrap.py) | Optional `KOKORO_AUTO_DOWNLOAD` fetch from kokoro-onnx `model-files-v1.0` release |
 | [`generator/tts_engine.py`](generator/tts_engine.py) | `KokoroTTS` — thin wrapper (24 kHz, `list_voices`, `generate_audio`) |
@@ -67,9 +68,9 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness probe; includes `app_version`, `tts_ready`, optional `tts_error` |
+| `GET` | `/health` | Liveness probe; includes `app_version`, `tts_ready`, optional `tts_error`, `ffmpeg_available` |
 | `GET` | `/voices` | List voice ids (empty if engine not loaded) |
-| `POST` | `/generate` | Synthesize text → WAV; **503** if no engine |
+| `POST` | `/generate` | Synthesize text → audio (`response_format`: `wav` \| `mp3` \| `opus`); **503** if no engine or if mp3/opus without `ffmpeg` |
 | `GET` | `/admin/models/status` | Model paths, file status (requires `API_TOKEN` when set) |
 | `POST` | `/admin/models/upload` | Multipart `onnx` / `voices_bin` |
 | `POST` | `/admin/models/reload` | Reload engine from disk |
@@ -81,7 +82,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 |--------|------|-------------|
 | `GET` | `/v1/models` | List models (`kokoro-v1.0` when loaded; empty when not) |
 | `GET` | `/v1/audio/voices` | List voices as `[{"id": …, "name": …}]` |
-| `POST` | `/v1/audio/speech` | Synthesize text → WAV (body: `model`, `input`, `voice`, `speed`, optional `language`, `response_format`); **503** if no engine |
+| `POST` | `/v1/audio/speech` | Synthesize text → audio (body: `model`, `input`, `voice`, `speed`, optional `language`, `response_format`: `wav` \| `mp3` \| `opus`); **503** if no engine or mp3/opus without `ffmpeg` |
 
 The `language` field on `/v1/audio/speech` is a non-standard extension: when omitted, the language is inferred from the Kokoro voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`).
 

@@ -10,6 +10,7 @@ LABEL org.opencontainers.image.source="https://github.com/chatondearu/cool-tts-s
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
+        ffmpeg \
         libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +20,7 @@ COPY generator/requirements_api.txt .
 RUN pip install --no-cache-dir -r requirements_api.txt
 
 COPY VERSION /app/VERSION
-COPY generator/main.py generator/tts_engine.py generator/model_bootstrap.py generator/synthesis_logging.py ./
+COPY generator/main.py generator/tts_engine.py generator/model_bootstrap.py generator/synthesis_logging.py generator/audio_encode.py ./
 
 RUN mkdir -p models voices
 

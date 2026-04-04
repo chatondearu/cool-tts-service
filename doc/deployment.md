@@ -9,7 +9,7 @@ See the root [`README.md`](../README.md) for project goals and layout.
 
 ## API behavior (models and startup)
 
-Starting **uvicorn** attempts to load Kokoro. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis returns **503** with a `detail`, while `GET /health` stays **200** and includes `app_version` (SemVer from the repo `VERSION` file), `tts_ready`, and `tts_error` when the engine is not loaded.
+Starting **uvicorn** attempts to load Kokoro. If the `.onnx` and `voices-*.bin` files are **missing or invalid**, the API **still starts**: synthesis returns **503** with a `detail`, while `GET /health` stays **200** and includes `app_version` (SemVer from the repo `VERSION` file), `tts_ready`, optional `tts_error` when the engine is not loaded, and **`ffmpeg_available`** (whether `ffmpeg` was found on `PATH` for mp3/opus encoding).
 
 Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOICES_BIN_PATH`. Optional first-boot download: `KOKORO_AUTO_DOWNLOAD=1` and `KOKORO_ONNX_VARIANT` (`f32`, `int8`, `fp16`) — see [`development.md`](development.md). Docker Compose can pass these from the host `.env`.
 
@@ -20,9 +20,9 @@ Place assets under `generator/models/` or set `KOKORO_MODEL_PATH` / `KOKORO_VOIC
 
 | Method | Path        | Description                                                     |
 | ------ | ----------- | --------------------------------------------------------------- |
-| `GET`  | `/health`   | Liveness probe; JSON includes `app_version`, `tts_ready`, and optional `tts_error` |
+| `GET`  | `/health`   | Liveness probe; JSON includes `app_version`, `tts_ready`, optional `tts_error`, and `ffmpeg_available` |
 | `GET`  | `/voices`   | List voice ids (empty list if TTS is not loaded)                |
-| `POST` | `/generate` | Synthesize text → WAV (`text`, `language`, `voice_id`, `speed`); **503** if TTS is not loaded |
+| `POST` | `/generate` | Synthesize text → audio (`text`, `language`, `voice_id`, `speed`, optional `response_format`: `wav` default, `mp3` at 44.1 kHz, `opus` at 48 kHz Ogg); **503** if TTS is not loaded; **503** for mp3/opus if `ffmpeg` is missing |
 
 Each successful or failed synthesis on `POST /generate` and `POST /v1/audio/speech` emits **one JSON object per line** on the API logger (`cool-tts`), so `docker logs` / platform log streams stay easy to grep and ship to Loki or similar. By default the payload includes metadata only (`text_chars`, voice, language, `client_ip`, `user_agent`, `duration_ms`, `status_code`, `request_id`, etc.) — not the raw input text. To log the full input string for a **single** request (debug), send header **`X-Cool-TTS-Debug-Log-Text: 1`** (or `true` / `yes`). Avoid this in production unless you accept the privacy risk.
 
@@ -47,16 +47,16 @@ These routes let external tools that speak the OpenAI TTS protocol use the same 
 | ------ | ------------------ | ------------------------------------------------------------------------------- |
 | `GET`  | `/v1/models`       | List models (`kokoro-v1.0` when loaded; **empty** `data` if TTS is not ready)      |
 | `GET`  | `/v1/audio/voices` | List voices as `[{"id", "name"}]`                                               |
-| `POST` | `/v1/audio/speech` | Synthesize text → WAV (`model`, `input`, `voice`, `speed`, optional `language`); **503** if TTS is not loaded |
+| `POST` | `/v1/audio/speech` | Synthesize text → audio (`model`, `input`, `voice`, `speed`, optional `language`, `response_format`: `wav` \| `mp3` \| `opus`); **503** if TTS is not loaded; **503** for mp3/opus if `ffmpeg` is missing |
 
 
-When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). Only `response_format=wav` is supported for now.
+When `language` is omitted from `/v1/audio/speech`, it is inferred from the voice prefix (e.g. `af_` → `en-us`, `ff_` → `fr-fr`). **`response_format`** may be `wav` (default), `mp3` (44.1 kHz mono), or `opus` (48 kHz mono, Ogg). Encoding requires **`ffmpeg`** at runtime (included in the API Docker image).
 
 **Open WebUI** — set the custom TTS base URL to `http://<host>:9000/v1` (local) or `https://<domain>/tts-server/v1` (Coolify) and optionally provide the `API_TOKEN` as API key.
 
-**Home Assistant** (`openai_tts` HACS integration) — use the full speech URL (`…/v1/audio/speech`), optional Bearer token when `API_TOKEN` is set, model `kokoro-v1.0`, and **Extra payload** `{"response_format":"wav"}` (the integration defaults to `mp3`, which this API rejects). Step-by-step: [`doc/home-assistant.md`](home-assistant.md).
+**Home Assistant** (`openai_tts` HACS integration) — use the full speech URL (`…/v1/audio/speech`), optional Bearer token when `API_TOKEN` is set, model `kokoro-v1.0`. **Extra payload** may set **`response_format`** to `wav`, `mp3`, or `opus` (integration default is often `mp3`, which is supported when `ffmpeg` is available). Step-by-step: [`doc/home-assistant.md`](home-assistant.md).
 
-**LiteLLM** — route TTS with `litellm_params.model: openai/kokoro-v1.0` and `api_base: http://<host>:9000/v1` (or `https://<domain>/tts-server/v1` behind Traefik). Callers through the proxy must send **`response_format: wav`**. Details: [`doc/litellm.md`](litellm.md).
+**LiteLLM** — route TTS with `litellm_params.model: openai/kokoro-v1.0` and `api_base: http://<host>:9000/v1` (or `https://<domain>/tts-server/v1` behind Traefik). Callers should send **`response_format`** (`wav`, `mp3`, or `opus`) as needed. Details: [`doc/litellm.md`](litellm.md).
 
 ### LD_LIBRARY_PATH on NixOS/Linux
 

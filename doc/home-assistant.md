@@ -45,8 +45,8 @@ Configure the **first profile** roughly as follows:
 | **Model**               | `kokoro-v1.0`                | Use **custom** input if it is not in the dropdown. This must match the model id returned by `GET /v1/models` when TTS is ready.                                                                                                  |
 | **Voice**               | A voice id from your server  | Must match an id from `GET /v1/audio/voices` (same ids as `GET /voices`). Examples used elsewhere in this repo’s docs include `af_sarah` (en-us) and `ff_siwis` (fr-fr) — use **custom** input if the id is not in the dropdown. |
 | **Speed**               | `1.0` (default)              | Allowed range on the API is **0.25–4.0**.                                                                                                                                                                                        |
-| **Extra payload**       | `{"response_format": "wav"}` | **Required** for Cool TTS: the integration defaults to `response_format: mp3`, but this API only accepts `**wav`** (see `OpenAISpeechRequest` in `generator/main.py`). The integration merges this JSON into the request body.   |
-| **Language** (optional) | —                            | The API infers language from the voice prefix when omitted. To force a locale, extend **Extra payload**, e.g. `{"response_format": "wav", "language": "fr-fr"}`.                                                                 |
+| **Extra payload**       | Optional JSON                | The integration often defaults to **`response_format`: `mp3`**, which Cool TTS supports when **`ffmpeg`** is available (Docker API image includes it). You may set **`response_format`** to `wav`, `mp3`, or `opus` explicitly. The integration merges this JSON into the request body.   |
+| **Language** (optional) | —                            | The API infers language from the voice prefix when omitted. To force a locale, extend **Extra payload**, e.g. `{"response_format": "mp3", "language": "fr-fr"}`.                                                                 |
 
 
 Optional fields (chime, normalization, instructions) are integration-specific; they do not change the Cool TTS HTTP contract except via merged **Extra payload** keys.
@@ -62,9 +62,9 @@ Optional fields (chime, normalization, instructions) are integration-specific; t
 | Symptom                               | Likely cause                                                                                                                                                        |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **401** from the API                  | `API_TOKEN` is set on Cool TTS but the integration **API key** is empty or wrong.                                                                                   |
-| **422** `Unsupported response_format` | Missing or wrong **Extra payload** — include `"response_format": "wav"`.                                                                                            |
+| **422** `Unsupported response_format` | Use **`wav`**, **`mp3`**, or **`opus`** only.                                                                                            |
 | **422** `Unknown voice`               | **Voice** does not exactly match an id from `GET /v1/audio/voices`.                                                                                                 |
-| **503**                               | Engine not loaded (missing/invalid ONNX or voices bundle on the server). Check `GET /health`.                                                                       |
+| **503**                               | Engine not loaded (`tts_ready`), or mp3/opus without **`ffmpeg`**. Check `GET /health` (`tts_error`, `ffmpeg_available`).                                                                       |
 | No audio / wrong host                 | URL must be the **full** `…/v1/audio/speech` path; behind a reverse proxy, include the same **prefix** as in `[deployment.md](deployment.md)` (e.g. `/tts-server`). |
 
 

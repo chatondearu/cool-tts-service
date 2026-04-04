@@ -71,6 +71,7 @@ def build_synthesis_payload(
     duration_ms: int,
     error: Optional[str] = None,
     wav_bytes: Optional[int] = None,
+    response_format: Optional[str] = None,
 ) -> dict[str, Any]:
     debug = debug_log_full_text_enabled(request)
     text_chars = len(text)
@@ -95,6 +96,8 @@ def build_synthesis_payload(
         payload["error"] = error
     if wav_bytes is not None:
         payload["wav_bytes"] = wav_bytes
+    if response_format is not None:
+        payload["response_format"] = response_format
     return payload
 
 

@@ -82,7 +82,7 @@ cd generator && python -c "from main import app; print(app.title)"
 curl -sS http://127.0.0.1:9000/health
 ```
 
-More checks (`/voices`, sample `/generate`) are listed in [`doc/development.md`](doc/development.md). There is no bundled **`pytest`** suite yet.
+More checks (`/voices`, sample `/generate`) and **`pytest`** (optional dev deps) are listed in [`doc/development.md`](doc/development.md).
 
 ### Example API usage
 

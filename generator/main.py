@@ -16,8 +16,9 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
+import audio_encode
 import soundfile as sf
 import synthesis_logging as synlog
 from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
@@ -135,6 +136,10 @@ async def _bootstrap_and_load(app: FastAPI) -> None:
         )
         logger.warning("TTS not loaded — %s", app.state.tts_error)
 
+    app.state.ffmpeg_available = audio_encode.ffmpeg_on_path()
+    if not app.state.ffmpeg_available:
+        logger.warning("ffmpeg not found on PATH: mp3/opus response_format will return 503")
+
 
 class _BearerTokenMiddleware(BaseHTTPMiddleware):
     """Reject requests without a valid Bearer token when API_TOKEN is set."""
@@ -207,6 +212,7 @@ async def health(request: Request) -> dict[str, Any]:
         "status": "ok",
         "app_version": _APP_VERSION,
         "tts_ready": tts is not None,
+        "ffmpeg_available": getattr(request.app.state, "ffmpeg_available", False),
     }
     err = getattr(request.app.state, "tts_error", None)
     if err:
@@ -241,6 +247,10 @@ class GenerateRequest(BaseModel):
         le=5.0,
         description="Playback speed multiplier (0 < speed <= 5).",
     )
+    response_format: str = Field(
+        "wav",
+        description="Output container: wav (default), mp3 (44.1 kHz), or opus (48 kHz Ogg).",
+    )
 
 
 def _synthesize_wav_bytes(
@@ -251,6 +261,32 @@ def _synthesize_wav_bytes(
     sf.write(buf, samples, tts.sample_rate, format="WAV", subtype="PCM_16")
     buf.seek(0)
     return buf.read()
+
+
+async def _wav_to_response_audio(
+    request: Request,
+    wav_bytes: bytes,
+    response_format: str,
+) -> tuple[bytes, str, str]:
+    if response_format == "wav":
+        return wav_bytes, "audio/wav", "speech.wav"
+    if response_format not in audio_encode.ENCODED_FORMATS:
+        raise ValueError(f"invalid response_format for encoding: {response_format!r}")
+    if not getattr(request.app.state, "ffmpeg_available", False):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "ffmpeg is required for mp3 and opus output; "
+                "install ffmpeg or use response_format wav."
+            ),
+        )
+    fmt: Literal["mp3", "opus"] = "mp3" if response_format == "mp3" else "opus"
+    try:
+        enc = await asyncio.to_thread(audio_encode.transcode_wav, wav_bytes, fmt)
+    except audio_encode.AudioEncodeError as exc:
+        logger.warning("ffmpeg transcode failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Audio encoding failed.") from exc
+    return enc.data, enc.media_type, enc.filename
 
 
 @app.post("/generate")
@@ -276,6 +312,7 @@ async def generate(request: Request, body: GenerateRequest) -> StreamingResponse
                 status_code=exc.status_code,
                 duration_ms=_elapsed_ms(),
                 error=synlog.http_error_message(exc.detail),
+                response_format=body.response_format,
             ),
         )
         raise
@@ -297,12 +334,38 @@ async def generate(request: Request, body: GenerateRequest) -> StreamingResponse
                     f"Unknown voice_id '{body.voice_id}'. "
                     f"Use GET /voices for the list ({len(available)} available)."
                 ),
+                response_format=body.response_format,
             ),
         )
         raise HTTPException(
             status_code=422,
             detail=f"Unknown voice_id '{body.voice_id}'. "
             f"Use GET /voices for the list ({len(available)} available).",
+        )
+
+    if body.response_format not in audio_encode.SPEECH_RESPONSE_FORMATS:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="generate",
+                request=request,
+                voice_id=body.voice_id,
+                language=body.language,
+                speed=body.speed,
+                text=body.text,
+                status_code=422,
+                duration_ms=_elapsed_ms(),
+                error=(
+                    f"Unsupported response_format '{body.response_format}'. "
+                    f"Supported: {', '.join(sorted(audio_encode.SPEECH_RESPONSE_FORMATS))}."
+                ),
+                response_format=body.response_format,
+            ),
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported response_format '{body.response_format}'. "
+            f"Supported: {', '.join(sorted(audio_encode.SPEECH_RESPONSE_FORMATS))}.",
         )
 
     try:
@@ -327,9 +390,34 @@ async def generate(request: Request, body: GenerateRequest) -> StreamingResponse
                 status_code=500,
                 duration_ms=_elapsed_ms(),
                 error=str(exc),
+                response_format=body.response_format,
             ),
         )
         raise HTTPException(status_code=500, detail="Synthesis failed.") from exc
+
+    try:
+        out_bytes, media_type, filename = await _wav_to_response_audio(
+            request,
+            wav_bytes,
+            body.response_format,
+        )
+    except HTTPException as exc:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="generate",
+                request=request,
+                voice_id=body.voice_id,
+                language=body.language,
+                speed=body.speed,
+                text=body.text,
+                status_code=exc.status_code,
+                duration_ms=_elapsed_ms(),
+                error=synlog.http_error_message(exc.detail),
+                response_format=body.response_format,
+            ),
+        )
+        raise
 
     synlog.emit_synthesis_event(
         synlog.build_synthesis_payload(
@@ -342,13 +430,14 @@ async def generate(request: Request, body: GenerateRequest) -> StreamingResponse
             text=body.text,
             status_code=200,
             duration_ms=_elapsed_ms(),
-            wav_bytes=len(wav_bytes),
+            wav_bytes=len(out_bytes),
+            response_format=body.response_format,
         ),
     )
     return StreamingResponse(
-        iter([wav_bytes]),
-        media_type="audio/wav",
-        headers={"Content-Disposition": 'attachment; filename="speech.wav"'},
+        iter([out_bytes]),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -464,8 +553,6 @@ async def admin_synthesis_logs(
 # OpenAI-compatible routes (Open WebUI, Home Assistant openai_tts, etc.)
 # ---------------------------------------------------------------------------
 
-_SUPPORTED_RESPONSE_FORMATS = {"wav"}
-
 
 class OpenAISpeechRequest(BaseModel):
     model: str = Field(..., min_length=1)
@@ -493,7 +580,7 @@ async def openai_speech(
 
     lang_for_log = _infer_language(body.voice, body.language)
 
-    if body.response_format not in _SUPPORTED_RESPONSE_FORMATS:
+    if body.response_format not in audio_encode.SPEECH_RESPONSE_FORMATS:
         synlog.emit_synthesis_event(
             synlog.build_synthesis_payload(
                 request_id=request_id,
@@ -507,14 +594,15 @@ async def openai_speech(
                 duration_ms=_elapsed_ms(),
                 error=(
                     f"Unsupported response_format '{body.response_format}'. "
-                    f"Supported: {', '.join(sorted(_SUPPORTED_RESPONSE_FORMATS))}."
+                    f"Supported: {', '.join(sorted(audio_encode.SPEECH_RESPONSE_FORMATS))}."
                 ),
+                response_format=body.response_format,
             ),
         )
         raise HTTPException(
             status_code=422,
             detail=f"Unsupported response_format '{body.response_format}'. "
-            f"Supported: {', '.join(sorted(_SUPPORTED_RESPONSE_FORMATS))}.",
+            f"Supported: {', '.join(sorted(audio_encode.SPEECH_RESPONSE_FORMATS))}.",
         )
 
     try:
@@ -532,6 +620,7 @@ async def openai_speech(
                 status_code=exc.status_code,
                 duration_ms=_elapsed_ms(),
                 error=synlog.http_error_message(exc.detail),
+                response_format=body.response_format,
             ),
         )
         raise
@@ -553,6 +642,7 @@ async def openai_speech(
                     f"Unknown voice '{body.voice}'. "
                     f"Use GET /v1/audio/voices for the list ({len(available)} available)."
                 ),
+                response_format=body.response_format,
             ),
         )
         raise HTTPException(
@@ -580,9 +670,34 @@ async def openai_speech(
                 status_code=500,
                 duration_ms=_elapsed_ms(),
                 error=str(exc),
+                response_format=body.response_format,
             ),
         )
         raise HTTPException(status_code=500, detail="Synthesis failed.") from exc
+
+    try:
+        out_bytes, media_type, filename = await _wav_to_response_audio(
+            request,
+            wav_bytes,
+            body.response_format,
+        )
+    except HTTPException as exc:
+        synlog.emit_synthesis_event(
+            synlog.build_synthesis_payload(
+                request_id=request_id,
+                route="openai_speech",
+                request=request,
+                voice_id=body.voice,
+                language=lang,
+                speed=body.speed,
+                text=body.input,
+                status_code=exc.status_code,
+                duration_ms=_elapsed_ms(),
+                error=synlog.http_error_message(exc.detail),
+                response_format=body.response_format,
+            ),
+        )
+        raise
 
     synlog.emit_synthesis_event(
         synlog.build_synthesis_payload(
@@ -595,13 +710,14 @@ async def openai_speech(
             text=body.input,
             status_code=200,
             duration_ms=_elapsed_ms(),
-            wav_bytes=len(wav_bytes),
+            wav_bytes=len(out_bytes),
+            response_format=body.response_format,
         ),
     )
     return StreamingResponse(
-        iter([wav_bytes]),
-        media_type="audio/wav",
-        headers={"Content-Disposition": 'attachment; filename="speech.wav"'},
+        iter([out_bytes]),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

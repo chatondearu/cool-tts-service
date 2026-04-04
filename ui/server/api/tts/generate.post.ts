@@ -5,6 +5,7 @@ const bodySchema = z.object({
   language: z.string().min(1),
   voice_id: z.string().min(1),
   speed: z.number().gt(0).lte(5).default(1.0),
+  response_format: z.enum(['wav', 'mp3', 'opus']).default('wav'),
 })
 
 export default defineEventHandler(async (event) => {
@@ -50,8 +51,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  setResponseHeader(event, 'Content-Type', 'audio/wav')
-  setResponseHeader(event, 'Content-Disposition', 'attachment; filename="speech.wav"')
+  const contentType = response.headers.get('content-type')
+  if (contentType)
+    setResponseHeader(event, 'Content-Type', contentType)
+  const disposition = response.headers.get('content-disposition')
+  if (disposition)
+    setResponseHeader(event, 'Content-Disposition', disposition)
 
   return response.body
 })
