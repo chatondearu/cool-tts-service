@@ -1,14 +1,45 @@
-# cool-tts-service
+<div align="center">
 
-Open-source **Text-to-Speech HTTP API** aimed at **fast CPU inference**, with a **modular** design so the engine can later be swapped for a heavier GPU-backed model. Includes a **Nuxt 4 web UI** for browser-based TTS generation.
+# 🎙️ Cool TTS Service
+
+**Self-hosted Text-to-Speech API with a modern web UI — fast CPU inference, zero cloud dependency.**
+
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Nuxt](https://img.shields.io/badge/UI-Nuxt%204-00DC82?logo=nuxt.js&logoColor=white)](https://nuxt.com/)
+[![Kokoro](https://img.shields.io/badge/TTS-Kokoro%20ONNX-blueviolet)](https://github.com/thewh1teagle/kokoro-onnx)
+[![Docker](https://img.shields.io/badge/Deploy-Docker-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![License](https://img.shields.io/badge/license-see%20below-lightgrey)](#license)
+
+<br/>
+
+<img src="assets/ui.png" alt="Cool TTS — Web UI" width="720" />
+
+<br/>
+
+</div>
+
+---
+
+> Open-source TTS HTTP service built around [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) for **lightweight CPU inference**. The engine is modular — swap it for a GPU-backed model when you need more power. Ships with an **OpenAI-compatible API**, a **Nuxt 4 web UI**, Docker Compose deployment, and integrations for **Home Assistant** and **LiteLLM**.
+
+### Highlights
+
+- ⚡ **Fast on CPU** — ONNX Runtime, no GPU required
+- 🌐 **50+ voices**, multi-language (EN, FR, JA, KO, ZH…)
+- 🔌 **OpenAI-compatible** `/v1/audio/speech` — drop-in for Open WebUI, Home Assistant, LiteLLM
+- 🖥️ **Modern web UI** — Nuxt 4 + Nuxt UI v4, auth, synthesis logs, model management
+- 🐳 **One-command deploy** — Docker Compose (local or Coolify single-domain)
+- 🎛️ **Custom voices** — bundle your own style vectors, merge with official pack
 
 ## Stack
 
-- **TTS:** [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (ONNX Runtime, lightweight on CPU)
-- **API:** [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)
-- **UI:** [Nuxt 4](https://nuxt.com/) + [Nuxt UI v4](https://ui4.nuxt.com/) + [nuxt-auth-utils](https://nuxt.com/modules/auth-utils)
-- **Python:** 3.10+ (recommended: match the Nix dev shell — **3.11**)
-- **Containers:** Docker + Compose ([`generator/Dockerfile`](generator/Dockerfile), [`ui/Dockerfile`](ui/Dockerfile), [`docker-compose.yml`](docker-compose.yml))
+| Layer | Technology |
+|-------|-----------|
+| **TTS engine** | [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) — ONNX Runtime, lightweight on CPU |
+| **API** | [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/) |
+| **Web UI** | [Nuxt 4](https://nuxt.com/) + [Nuxt UI v4](https://ui4.nuxt.com/) + [nuxt-auth-utils](https://nuxt.com/modules/auth-utils) |
+| **Python** | 3.10+ (recommended: **3.11** via Nix dev shell) |
+| **Containers** | Docker + Compose ([`generator/Dockerfile`](generator/Dockerfile), [`ui/Dockerfile`](ui/Dockerfile), [`docker-compose.yml`](docker-compose.yml)) |
 
 ## Layout
 
