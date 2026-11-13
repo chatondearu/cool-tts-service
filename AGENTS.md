@@ -13,7 +13,7 @@
 
 Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** dependency and source paths from the tree or these docs.
 
-**Automation / agents:** run project commands inside the Nix dev shell so **Node.js 22**, **npm**, **Python**, and **`uv`** match the flake. From repo root use `nix develop` (interactive) or one-shot `nix develop --command '…'` (e.g. `nix develop --command 'cd ui && npm run build'`). Do not assume a system-wide `node`/`npm` outside the flake unless the user explicitly uses the non-Nix path in [`doc/development.md`](doc/development.md).
+**Automation / agents:** prefer host / activated **Mise** (`mise.toml`, Node 22 + npm) for UI work (`mise install` then `mise exec -- …`). Keep the flake for **Python** / **`uv`** / audio libs via direnv `use flake`; use `nix develop` (or `nix develop --command '…'`) only as a hermetic fallback when Mise is missing or Node fails on NixOS. See also [`doc/development.md`](doc/development.md).
 
 ## Project shape
 
@@ -42,6 +42,7 @@ Do **not** assume historical layouts (e.g. `app/requirements.txt`). **Infer** de
 | [`generator/voices/`](generator/voices/) | Generated bundles + manifests (gitignored except `.gitkeep`) |
 | [`doc/voice-preparation.md`](doc/voice-preparation.md) | Full voice prep guide (concepts, workflow, script ref, FAQ) |
 | [`flake.nix`](flake.nix) / [`flake.lock`](flake.lock) | Dev shell (Python 3.11, `uv`, Node.js 22 + npm, audio libs) |
+| [`mise.toml`](mise.toml) / [`mise.lock`](mise.lock) | Optional Node 22 pin (alongside Nix; Python/uv stay on the flake) |
 
 ## Environment variables
 
